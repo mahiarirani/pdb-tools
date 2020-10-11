@@ -1,3 +1,4 @@
+import math, numpy
 from Bio.PDB import *
 
 def probe(n=100):
@@ -15,11 +16,12 @@ def probe(n=100):
 
     return points
 
+radius = 1.4
 parser = PDBParser()
 structure = parser.get_structure("2RSC", "2RSC.pdb")
-residues = []
-for model in structure:
-    for chain in model:
-        for residue in chain:
-            residues.append(residue)
+atoms = numpy.array(Selection.unfold_entities(structure, "A"))
+for atom in atoms:
+    atom.probe = probe()
+    atom.probe += atom.get_coord()
+    atom.probe *= radius
 
