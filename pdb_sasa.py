@@ -54,8 +54,9 @@ for key in range(atoms.size):
             if d < radius ** 2:
                 atoms[ndx[key][0]].accessibility += 1
                 break
+    print('Atom #%s SASA is %s' % (ndx[key][0], atoms[ndx[key][0]].accessibility / 100))
 
 total = 0
 for atom in atoms:
     total += atom.accessibility
-print(total / atoms.size)
+print('Total SASA of %s is %s percent' % (structure.get_id(), round(total / atoms.size * 100, 2)))
