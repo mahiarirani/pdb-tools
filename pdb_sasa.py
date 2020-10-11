@@ -1,4 +1,4 @@
-import math, numpy
+import numpy
 from Bio.PDB import *
 from scipy.spatial import KDTree
 
@@ -11,22 +11,19 @@ from scipy.spatial import KDTree
 # - visualize atom
 # - classify the program
 # - optimize
-# - change probe
+# + change probe
+# - input probe radius
+# - add timer
+# - convert percentage to area measurement unit
 
-def probe(n=100):
-    points = []
-    phi = math.pi * (3. - math.sqrt(5.))
+def probe(n=10):
+    indices = numpy.arange(0, n, dtype=float) + 0.5
 
-    for i in range(n):
-        y = 1 - (i / float(n - 1)) * 2
-        radius = math.sqrt(1 - y * y)
-        theta = phi * i
-        x = math.cos(theta) * radius
-        z = math.sin(theta) * radius
+    phi = numpy.arccos(1 - 2 * indices / n)
+    theta = numpy.pi * (1 + 5 ** 0.5) * indices
 
-        points.append((x, y, z))
-
-    return points
+    points = numpy.dstack([numpy.cos(theta) * numpy.sin(phi), numpy.sin(theta) * numpy.sin(phi), numpy.cos(phi)])
+    return points[0]
 
 
 def get_coordinates(atom):
@@ -53,8 +50,8 @@ for key in range(atoms.size):
         if distances[key][idx] > radius * 2:
             break
         for point in atoms[ndx[key][0]].probe:
-            d = math.sqrt(((point - atoms[ndx[key][idx]].coord) ** 2).sum())
-            if d < radius:
+            d = ((point - atoms[ndx[key][idx]].coord) ** 2).sum()
+            if d < radius ** 2:
                 atoms[ndx[key][0]].accessibility += 1
                 break
 
