@@ -3,6 +3,16 @@ from Bio.PDB import *
 from scipy.spatial import KDTree
 
 
+# TODO
+# - include atoms size
+# - output by type
+# - find right neighbours
+# - input pdb file
+# - visualize atom
+# - classify the program
+# - optimize
+# - change probe
+
 def probe(n=100):
     points = []
     phi = math.pi * (3. - math.sqrt(5.))
