@@ -1,5 +1,7 @@
 import math, numpy
 from Bio.PDB import *
+from scipy.spatial import KDTree
+
 
 def probe(n=100):
     points = []
@@ -32,3 +34,6 @@ for atom in atoms:
     atom.probe = probe()
     atom.probe += atom.get_coord()
     atom.probe *= radius
+
+tree = KDTree(coords)
+distances, ndx = tree.query(coords, k=10)
