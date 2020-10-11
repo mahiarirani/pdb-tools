@@ -47,3 +47,8 @@ for key in range(atoms.size):
             if d < radius:
                 atoms[ndx[key][0]].accessibility += 1
                 break
+
+total = 0
+for atom in atoms:
+    total += atom.accessibility
+print(total / atoms.size)
