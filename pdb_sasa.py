@@ -37,3 +37,13 @@ for atom in atoms:
 
 tree = KDTree(coords)
 distances, ndx = tree.query(coords, k=10)
+
+for key in range(atoms.size):
+    for idx in range(1, 9):
+        if distances[key][idx] > radius * 2:
+            break
+        for point in atoms[ndx[key][0]].probe:
+            d = math.sqrt(((point - atoms[ndx[key][idx]].coord) ** 2).sum())
+            if d < radius:
+                atoms[ndx[key][0]].accessibility += 1
+                break
