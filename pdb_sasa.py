@@ -60,7 +60,5 @@ for index, atom in enumerate(atoms):
         sum([i != 0 for i in [tree.query_radius(atom.probe, atom.radius + radius, count_only=True)]])) / probe_points
     print('Atom #%s [%s] SASA is %s' % (index+1, atom.element, atom.accessibility))
 
-total = 0
-for atom in atoms:
-    total += atom.accessibility
-print('Total SASA of %s is %s percent' % (structure.get_id(), round(total / atoms.size, 2)))
+total = sum(atom.accessibility for atom in atoms)
+print('Total SASA of %s is %s percent' % (structure.get_id(), round(total / atoms.size * 100, 2)))
