@@ -1,6 +1,6 @@
 import numpy as np
 from Bio.PDB import *
-from scipy.spatial import KDTree
+from sklearn.neighbors import KDTree
 
 
 #TODO
@@ -41,21 +41,15 @@ for atom in atoms:
     atom.accessibility = 0
     atom.probe = probe(probe_points, atom.get_coord(), radius)
 
+coords = np.array(coords)
 tree = KDTree(coords)
-distances, ndx = tree.query(coords, k=10)
 
-for key in range(atoms.size):
-    for idx in range(1, 9):
-        if distances[key][idx] > radius * 2:
-            break
-        for point in atoms[ndx[key][0]].probe:
-            d = ((point - atoms[ndx[key][idx]].coord) ** 2).sum()
-            if d < radius ** 2:
-                atoms[ndx[key][0]].accessibility += 1
-                break
-    print('Atom #%s SASA is %s' % (ndx[key][0], atoms[ndx[key][0]].accessibility / 100))
+for index, atom in enumerate(atoms):
+    atom.accessibility = sum(
+        sum([i != 0 for i in [tree.query_radius(atom.probe, radius, count_only=True)]])) / probe_points
+    print('Atom #%s SASA is %s' % (index, atom.accessibility))
 
 total = 0
 for atom in atoms:
     total += atom.accessibility
-print('Total SASA of %s is %s percent' % (structure.get_id(), round(total / atoms.size * 100, 2)))
+print('Total SASA of %s is %s percent' % (structure.get_id(), round(total / atoms.size, 2)))
