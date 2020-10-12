@@ -1,9 +1,9 @@
-import numpy
+import numpy as np
 from Bio.PDB import *
 from scipy.spatial import KDTree
 
 
-# TODO
+#TODO
 # - include atoms size
 # - output by type
 # - find right neighbours
@@ -16,14 +16,14 @@ from scipy.spatial import KDTree
 # - add timer
 # - convert percentage to area measurement unit
 
-def probe(n=10):
-    indices = numpy.arange(0, n, dtype=float) + 0.5
+def probe(n, coords, radius):
+    indices = np.arange(0, n, dtype=float) + 0.5
 
-    phi = numpy.arccos(1 - 2 * indices / n)
-    theta = numpy.pi * (1 + 5 ** 0.5) * indices
+    phi = np.arccos(1 - 2 * indices / n)
+    theta = np.pi * (1 + 5 ** 0.5) * indices
 
-    points = numpy.dstack([numpy.cos(theta) * numpy.sin(phi), numpy.sin(theta) * numpy.sin(phi), numpy.cos(phi)])
-    return points[0]
+    points = np.dstack([np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)])
+    return (points[0] + coords) * radius
 
 
 def get_coordinates(atom):
@@ -32,15 +32,14 @@ def get_coordinates(atom):
 
 coords = []
 radius = 1.4
+probe_points = 10
 parser = PDBParser()
 structure = parser.get_structure("2RSC", "2RSC.pdb")
-atoms = numpy.array(Selection.unfold_entities(structure, "A"))
+atoms = np.array(Selection.unfold_entities(structure, "A"))
 for atom in atoms:
     coords.append(get_coordinates(atom))
     atom.accessibility = 0
-    atom.probe = probe()
-    atom.probe += atom.get_coord()
-    atom.probe *= radius
+    atom.probe = probe(probe_points, atom.get_coord(), radius)
 
 tree = KDTree(coords)
 distances, ndx = tree.query(coords, k=10)
