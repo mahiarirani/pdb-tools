@@ -57,8 +57,9 @@ tree = KDTree(coords)
 
 for index, atom in enumerate(atoms):
     atom.accessibility = sum(
-        sum([i != 0 for i in [tree.query_radius(atom.probe, atom.radius + probe.radius, count_only=True)]])) / probe_points
-    print('Atom #%s [%s] SASA is %s' % (index+1, atom.element, atom.accessibility))
+        sum([i != 0 for i in
+             [tree.query_radius(atom.probe, atom.radius + probe.radius, count_only=True)]])) / probe.points
+    print('Atom #%s [%s] SASA is %s' % (index + 1, atom.element, atom.accessibility))
 
 total = sum(atom.accessibility for atom in atoms)
 print('Total SASA of %s is %s percent' % (structure.get_id(), round(total / atoms.size * 100, 2)))
