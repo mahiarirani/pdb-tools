@@ -29,7 +29,7 @@ class PDB:
 
         self.atom_radii = self.load_atom_radii()
 
-        self.structure = self.load_pdb("2rsc.pdb")
+        self.structure = self.load_pdb()
         self.atoms = self.get_atoms()
         self.coords = []
         self.coords = self.get_all_coordinates()
@@ -45,7 +45,7 @@ class PDB:
         file_name, file_extension = os.path.splitext(file)
 
         parser = PDBParser()
-        return parser.get_structure(file_name, path + file)
+        return parser.get_structure(file_name, path + '/' + file)
 
     @staticmethod
     def load_atom_radii(file='atom_radii.csv'):
