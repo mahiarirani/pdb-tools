@@ -21,6 +21,7 @@ from sklearn.neighbors import KDTree
 # - visualize atom
 # - calculate polar/apolar surface
 # - concurrent processing
+# - update atom element radii
 
 class PDB:
     def __init__(self, probe_points=100, probe_radius=1.4):
@@ -31,6 +32,7 @@ class PDB:
 
         self.structure = self.load_pdb()
         self.atoms = self.get_atoms()
+        self.attach_probe()
         self.coords = []
         self.coords = self.get_all_coordinates()
 
@@ -125,6 +127,5 @@ class PDB:
 
 
 myPDB = PDB()
-myPDB.attach_probe()
 myPDB.sasa()
 myPDB.output()
