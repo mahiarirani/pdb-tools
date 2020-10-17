@@ -75,7 +75,7 @@ class PDB:
         theta = np.pi * (1 + 5 ** 0.5) * indices
 
         points = np.dstack([np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)])
-        return (points[0] + atom_coords) * atom_radius
+        return points[0] * atom_radius + atom_coords
 
     def attach_probe(self):
         print('----------\nBegin Probe Attachment')
@@ -87,10 +87,18 @@ class PDB:
     def sasa(self):
         print('----------\nBegin SASA Calculation')
         tree = KDTree(self.coords)
+        radius = (self.probe_radius + self.atom_radii[max(self.atom_radii, key=lambda i: self.atom_radii[i])])
         for index, atom in enumerate(self.atoms):
-            radius = (self.probe_radius + atom.radius)
-            atom.accessibility = round((4 * np.pi * radius ** 2) * (sum(sum(
-                [i != 0 for i in [tree.query_radius(atom.probe, radius, count_only=True)]])) / self.probe_points), 2)
+            nna, probes = tree.query_radius(atom.probe, radius, return_distance=True)
+            atom.accessibility = 0
+            for idx, probe in enumerate(probes):
+                if probe.size > 0:
+                    probe = np.sort(probe)
+                    neighbour = round(probe[0], 2)
+                    if neighbour < atom.radius + self.probe_radius:
+                        atom.accessibility += 1
+            atom.accessibility = 1 - atom.accessibility / self.probe_points
+            atom.accessibility *= 4 * np.pi * (atom.radius + self.probe_radius) ** 2
             print('Atom #%s [%s] SASA is %s Å' % (index + 1, atom.element, atom.accessibility))
         print('SASA Calculated Successfully\n----------')
 
@@ -119,4 +127,4 @@ class PDB:
 myPDB = PDB()
 myPDB.attach_probe()
 myPDB.sasa()
-myPDB.output('mcra')
+myPDB.output()
