@@ -7,6 +7,7 @@ from Bio.PDB import *
 class PDB:
     def __init__(self, address=None):
         self.structure = self.load(address)
+        self.atoms = self.get_atoms()
 
     @staticmethod
     def load(file=None):

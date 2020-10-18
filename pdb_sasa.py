@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.neighbors import KDTree
 from Probe import Probe
 from PDB import PDB
 
@@ -24,29 +23,18 @@ from PDB import PDB
 class Main:
     def __init__(self, probe_points=100, probe_radius=1.4):
         self.PDB = PDB()
-        self.atoms = self.PDB.get_atoms()
-
-        self.probe = Probe(self.atoms, probe_points, probe_radius)
-        self.probe.coords = np.array(self.probe.get_coordinates())
-        self.probe.tree = self.create_tree(self.probe.coords)
-
-    @staticmethod
-    def create_tree(item):
-        print('----------\nCreating KDTree')
-        tree = KDTree(item)
-        print('KDTree Created Successfully\n----------')
-        return tree
+        self.probe = Probe(self.PDB.atoms, probe_points, probe_radius)
 
     def sasa(self):
         print('----------\nFinding Near Probe Points')
-        for index, atom in enumerate(self.atoms):
+        for index, atom in enumerate(self.PDB.atoms):
             radius = (self.probe.radius + atom.radius) - 0.001
             points = self.probe.tree.query_radius([self.PDB.get_coordinates(atom)], radius)[0]
             self.probe.coords[points] = 0
             print('Searching Atom #%s points' % (index + 1), end='\r')
         print('Probe Points Found Successfully\n----------')
         print('----------\nBegin SASA Calculation')
-        for index, atom in enumerate(self.atoms):
+        for index, atom in enumerate(self.PDB.atoms):
             pp = self.probe.points
             atom_probe_points = self.probe.coords[index * pp:index * pp + pp]
             atom.accessibility = sum([p != 0 for p in atom_probe_points])[0] / pp

@@ -1,17 +1,18 @@
 import numpy as np
+from sklearn.neighbors import KDTree
 import csv
 import unknown_radii
 
 
 class Probe:
-    def __init__(self, atoms, points, radius, coords=None, tree=None):
+    def __init__(self, atoms, points, radius):
         self.points = points
         self.radius = radius
-        self.coords = coords
-        self.tree = tree
         self.atoms = atoms
         self.atom_radii = self.load_atom_radii()
         self.attach_probe()
+        self.coords = np.array(self.get_coordinates())
+        self.tree = self.create_tree(self.coords)
 
     @staticmethod
     def load_atom_radii(file='vdw_radii.csv'):
@@ -60,3 +61,11 @@ class Probe:
             atom.probe = probe * (self.radius + atom.radius) + atom.get_coord()
             print('Creating Atom #%s [%s] Probe' % (index + 1, atom.element), end='\r')
         print('Probe Attached Successfully\n----------')
+
+    @staticmethod
+    def create_tree(item):
+        print('----------\nCreating KDTree')
+        tree = KDTree(item)
+        print('KDTree Created Successfully\n----------')
+        return tree
+
