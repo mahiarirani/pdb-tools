@@ -32,8 +32,8 @@ class PDB:
         self.structure = self.load_pdb()
         self.atoms = self.get_atoms()
         self.attach_probe()
-        self.coords = self.get_all_coordinates()
-        self.atom_tree, self.probe_tree = self.create_tree(self.coords)
+        self.coords = np.array(self.get_all_probe_coordinates())
+        self.probe_tree = self.create_tree(self.coords)
 
     @staticmethod
     def load_pdb(file=None):
@@ -63,23 +63,16 @@ class PDB:
     def get_coordinates(a):
         return [a.get_coord()[0], a.get_coord()[1], a.get_coord()[2]]
 
-    def get_all_coordinates(self):
-        atom_coords = []
-        probe_coords = []
-        for atom in self.atoms:
-            atom_coords.append(self.get_coordinates(atom))
-            for probe in atom.probe:
-                probe_coords.append(probe)
-        return {'atom': np.array(atom_coords), 'probe': np.array(probe_coords)}
+    def get_all_probe_coordinates(self):
+        coords = []
+        for item in self.atoms:
+            for probe in item.probe:
+                coords.append(probe)
+        return coords
 
     @staticmethod
-    def create_tree(items):
-        trees = []
-        print('----------\nBegin Tree Creation')
-        for item in items:
-            trees.append(KDTree(items[item]))
-        print('Tree Created Successfully\n----------')
-        return trees
+    def create_tree(item):
+        return KDTree(item)
 
     @staticmethod
     def create_probe(n, atom_coords, atom_radius):
@@ -99,18 +92,15 @@ class PDB:
         print('Probe Attached Successfully\n----------')
 
     def sasa(self):
-        print('----------\nBegin SASA Calculation')
         for index, atom in enumerate(self.atoms):
             radius = (self.probe_radius + atom.radius)
-            points, dist = self.probe_tree.query_radius([self.get_coordinates(atom)], radius, return_distance=True)
-            for point in points[0]:
-                self.coords['probe'][point] = 0
+            points = self.probe_tree.query_radius([self.get_coordinates(atom)], radius)[0]
+            self.coords[points] = 0
             print('Atom #%s [%s] SASA is calculating' % (index + 1, atom.element))
         for index, atom in enumerate(self.atoms):
             pp = self.probe_points
-            atom_probe_points = self.coords['probe'][index * pp:index * pp + pp]
-            atom.accessibility = sum([p != 0 for p in atom_probe_points])[0]
-            atom.accessibility /= self.probe_points
+            atom_probe_points = self.coords[index * pp:index * pp + pp]
+            atom.accessibility = sum([p != 0 for p in atom_probe_points])[0] / pp
             atom.accessibility *= 4 * np.pi * (atom.radius + self.probe_radius) ** 2
         print('SASA Calculated Successfully\n----------')
 
