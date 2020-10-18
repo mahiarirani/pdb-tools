@@ -50,10 +50,12 @@ class PDB:
 
     @staticmethod
     def load_atom_radii(file='atom_radii.csv'):
+        print('----------\nLoading PDB File')
         atom_radii_dict = {}
         with open(file, 'r') as data:
             for line in csv.DictReader(data):
                 atom_radii_dict[line['atom'].upper()] = int(line['radii']) / 100
+        print('PDB File Loaded Successfully\n----------')
         return atom_radii_dict
 
     def get_atoms(self):
@@ -72,7 +74,10 @@ class PDB:
 
     @staticmethod
     def create_tree(item):
-        return KDTree(item)
+        print('----------\nCreating KDTree')
+        tree = KDTree(item)
+        print('KDTree Created Successfully\n----------')
+        return tree
 
     @staticmethod
     def create_probe(n):
@@ -90,19 +95,25 @@ class PDB:
         for index, atom in enumerate(self.atoms):
             atom.radius = self.atom_radii[atom.element]
             atom.probe = probe * (self.probe_radius + atom.radius) + atom.get_coord()
+            print('Creating Atom #%s [%s] Probe' % (index + 1, atom.element), end='\r')
         print('Probe Attached Successfully\n----------')
 
     def sasa(self):
+        print('----------\nFinding Near Probe Points')
         for index, atom in enumerate(self.atoms):
             radius = (self.probe_radius + atom.radius)
             points = self.probe_tree.query_radius([self.get_coordinates(atom)], radius)[0]
             self.coords[points] = 0
-            print('Atom #%s [%s] SASA is calculating' % (index + 1, atom.element))
+            print('Searching Atom #%s points' % (index + 1), end='\r')
+        print('Probe Points Found Successfully\n----------')
+        print('----------\nBegin SASA Calculation')
         for index, atom in enumerate(self.atoms):
             pp = self.probe_points
             atom_probe_points = self.coords[index * pp:index * pp + pp]
-            atom.accessibility = sum([p != 0 for p in atom_probe_points])[0] / pp
+            atom.accessibility = sum([p != 0 for p in atom_probe_points])[0]
+            atom.accessibility /= pp
             atom.accessibility *= 4 * np.pi * (atom.radius + self.probe_radius) ** 2
+            print('Atom #%s [%s] SASA is %s Å' % (index + 1, atom.element, atom.accessibility), end='\r')
         print('SASA Calculated Successfully\n----------')
 
     @staticmethod
