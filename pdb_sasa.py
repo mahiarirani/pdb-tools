@@ -75,20 +75,21 @@ class PDB:
         return KDTree(item)
 
     @staticmethod
-    def create_probe(n, atom_coords, atom_radius):
+    def create_probe(n):
         indices = np.arange(0, n, dtype=float) + 0.5
 
         phi = np.arccos(1 - 2 * indices / n)
         theta = np.pi * (1 + 5 ** 0.5) * indices
 
         points = np.dstack([np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)])
-        return points[0] * atom_radius + atom_coords
+        return points[0]
 
     def attach_probe(self):
+        probe = self.create_probe(self.probe_points)
         print('----------\nBegin Probe Attachment')
-        for atom in self.atoms:
+        for index, atom in enumerate(self.atoms):
             atom.radius = self.atom_radii[atom.element]
-            atom.probe = self.create_probe(self.probe_points, atom.get_coord(), self.probe_radius + atom.radius)
+            atom.probe = probe * (self.probe_radius + atom.radius) + atom.get_coord()
         print('Probe Attached Successfully\n----------')
 
     def sasa(self):
