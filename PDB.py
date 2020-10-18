@@ -2,11 +2,16 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 from Bio.PDB import *
+from Timer import Timer
 
 
 class PDB:
+    timer = Timer()
+
     def __init__(self, address=None):
+        self.timer.start()
         self.structure = self.load(address)
+        self.timer.stop()
         self.atoms = self.get_atoms()
 
     @staticmethod
@@ -33,4 +38,3 @@ class PDB:
     @staticmethod
     def get_coordinates(a):
         return [a.get_coord()[0], a.get_coord()[1], a.get_coord()[2]]
-

@@ -1,6 +1,7 @@
 import numpy as np
 from Probe import Probe
 from PDB import PDB
+from Timer import Timer
 
 
 #TODO
@@ -13,19 +14,22 @@ from PDB import PDB
 # + input arguments
 # + output by type
 # + convert percentage to area measurement unit
-# - add timer
+# + add timer
 # - visualize atom
-# - calculate polar/apolar surface
+# + calculate polar/apolar surface
 # - concurrent processing
 # + update atom element radii
 
 
 class Main:
+    timer = Timer()
+
     def __init__(self, probe_points=100, probe_radius=1.4):
         self.PDB = PDB()
         self.probe = Probe(self.PDB.atoms, probe_points, probe_radius)
 
     def sasa(self):
+        self.timer.start()
         print('----------\nFinding Near Probe Points')
         for index, atom in enumerate(self.PDB.atoms):
             radius = (self.probe.radius + atom.radius) - 0.001
@@ -33,6 +37,8 @@ class Main:
             self.probe.coords[points] = 0
             print('Searching Atom #%s points' % (index + 1), end='\r')
         print('Probe Points Found Successfully\n----------')
+        self.timer.stop()
+        self.timer.start()
         print('----------\nBegin SASA Calculation')
         for index, atom in enumerate(self.PDB.atoms):
             pp = self.probe.points
@@ -41,6 +47,8 @@ class Main:
             atom.accessibility *= 4 * np.pi * (atom.radius + self.probe.radius) ** 2
             print('Atom #%s [%s] SASA is %s Å' % (index + 1, atom.element, atom.accessibility), end='\r')
         print('SASA Calculated Successfully\n----------')
+        self.timer.stop()
+        self.timer.lapsed()
 
     def calc_sasa(self, item):
         polar, apolar = 0, 0
