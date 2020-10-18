@@ -5,6 +5,7 @@ import csv
 import numpy as np
 from Bio.PDB import *
 from sklearn.neighbors import KDTree
+import unknown_radii
 
 
 #TODO
@@ -21,7 +22,7 @@ from sklearn.neighbors import KDTree
 # - visualize atom
 # - calculate polar/apolar surface
 # - concurrent processing
-# - update atom element radii
+# + update atom element radii
 
 class PDB:
     def __init__(self, probe_points=100, probe_radius=1.4):
@@ -53,11 +54,20 @@ class PDB:
         return structure
 
     @staticmethod
-    def load_atom_radii(file='atom_radii.csv'):
+    def load_atom_radii(file='vdw_radii.csv'):
+        print('----------\nLoading Atom Radii')
         atom_radii_dict = {}
         with open(file, 'r') as data:
-            for line in csv.DictReader(data):
-                atom_radii_dict[line['atom'].upper()] = int(line['radii']) / 100
+            for line in csv.reader(data):
+                if line[0] == 'RESIDUE':
+                    residue = line[2]
+                    atom_radii_dict[residue] = {}
+                elif line[0] == 'ATOM':
+                    atom = line[1]
+                    atom_radii_dict[residue][atom] = {}
+                    atom_radii_dict[residue][atom]['radii'] = float(line[2])
+                    atom_radii_dict[residue][atom]['polar'] = bool(line[3])
+        print('Atom Radii Loaded Successfully\n----------')
         return atom_radii_dict
 
     def get_atoms(self):
@@ -95,7 +105,12 @@ class PDB:
         probe = self.create_probe(self.probe_points)
         print('----------\nBegin Probe Attachment')
         for index, atom in enumerate(self.atoms):
-            atom.radius = self.atom_radii[atom.element]
+            res = atom.get_parent().get_resname()
+            try:
+                atom.radius = self.atom_radii[res][atom.name]['radii']
+                atom.polar = self.atom_radii[res][atom.name]['polar']
+            except KeyError:
+                atom = unknown_radii.get_data(atom)
             atom.probe = probe * (self.probe_radius + atom.radius) + atom.get_coord()
             print('Creating Atom #%s [%s] Probe' % (index + 1, atom.element), end='\r')
         print('Probe Attached Successfully\n----------')
