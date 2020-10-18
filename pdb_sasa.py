@@ -40,7 +40,7 @@ class Main:
     def sasa(self):
         print('----------\nFinding Near Probe Points')
         for index, atom in enumerate(self.atoms):
-            radius = (self.probe.radius + atom.radius)
+            radius = (self.probe.radius + atom.radius) - 0.001
             points = self.probe.tree.query_radius([self.PDB.get_coordinates(atom)], radius)[0]
             self.probe.coords[points] = 0
             print('Searching Atom #%s points' % (index + 1), end='\r')
@@ -49,8 +49,7 @@ class Main:
         for index, atom in enumerate(self.atoms):
             pp = self.probe.points
             atom_probe_points = self.probe.coords[index * pp:index * pp + pp]
-            atom.accessibility = sum([p != 0 for p in atom_probe_points])[0]
-            atom.accessibility /= pp
+            atom.accessibility = sum([p != 0 for p in atom_probe_points])[0] / pp
             atom.accessibility *= 4 * np.pi * (atom.radius + self.probe.radius) ** 2
             print('Atom #%s [%s] SASA is %s Å' % (index + 1, atom.element, atom.accessibility), end='\r')
         print('SASA Calculated Successfully\n----------')
