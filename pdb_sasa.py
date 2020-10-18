@@ -43,24 +43,41 @@ class Main:
         print('SASA Calculated Successfully\n----------')
 
     def calc_sasa(self, item):
-        atoms = np.array(self.PDB.get_atoms(item))
-        return round(sum(atom.accessibility for atom in atoms), 2)
+        polar, apolar = 0, 0
+        for atom in self.PDB.get_atoms(item):
+            if atom.polar:
+                polar += atom.accessibility
+            else:
+                apolar += atom.accessibility
+        polar = round(polar, 2)
+        apolar = round(apolar, 2)
+        total = round(polar + apolar, 2)
+        return total, polar, apolar
 
     def report(self, method=''):
         print('----------\nResult\n----------')
         for model in self.PDB.structure:
             if method.__contains__('m'):
-                print('Model #%s SASA is %s Å' % (model.id, self.calc_sasa(model)))
+                t, p, a = self.calc_sasa(model)
+                print('Model #%s SASA is %s Å [Polar : %s Å / Apolar : %s Å]' % (
+                    model.id, t, p, a))
             for chain in model:
                 if method.__contains__('c'):
-                    print('Chain #%s SASA is %s Å' % (chain.id, self.calc_sasa(chain)))
+                    t, p, a = self.calc_sasa(chain)
+                    print('Chain #%s SASA is %s Å [Polar : %s Å / Apolar : %s Å]' % (
+                        chain.id, t, p, a))
                 for residue in chain:
                     if method.__contains__('r'):
-                        print('Residue #%s SASA is %s Å' % (residue.get_resname(), self.calc_sasa(residue)))
+                        t, p, a = self.calc_sasa(residue)
+                        print('Residue #%s SASA is %s Å [Polar : %s Å / Apolar : %s Å]' % (
+                            residue.get_resname(), t, p, a))
                     for atom in residue:
                         if method.__contains__('a'):
-                            print('Atom #%s SASA is %s Å' % (atom.get_name(), atom.accessibility))
-        print('Total SASA of %s is %s Å' % (self.PDB.structure.get_id(), self.calc_sasa(self.PDB.structure)))
+                            print('Atom #%s SASA is %s Å [Polar : %s]' % (
+                                atom.get_name(), atom.accessibility, atom.polar))
+        t, p, a = self.calc_sasa(self.PDB.structure)
+        print('Total SASA of %s is %s Å [Polar: %s Å / Apolar: %s Å]' % (
+            self.PDB.structure.get_id(), t, p, a))
 
 
 myPDB = Main()

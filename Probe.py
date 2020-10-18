@@ -27,7 +27,7 @@ class Probe:
                     atom = line[1]
                     atom_radii_dict[residue][atom] = {}
                     atom_radii_dict[residue][atom]['radii'] = float(line[2])
-                    atom_radii_dict[residue][atom]['polar'] = bool(line[3])
+                    atom_radii_dict[residue][atom]['polar'] = bool(int(line[3]))
         print('Atom Radii Loaded Successfully\n----------')
         return atom_radii_dict
 
