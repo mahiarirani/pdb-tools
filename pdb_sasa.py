@@ -53,7 +53,7 @@ class PDB:
         atom_radii_dict = {}
         with open(file, 'r') as data:
             for line in csv.DictReader(data):
-                atom_radii_dict[line['atom']] = int(line['radii']) / 100
+                atom_radii_dict[line['atom'].upper()] = int(line['radii']) / 100
         return atom_radii_dict
 
     def get_atoms(self):
