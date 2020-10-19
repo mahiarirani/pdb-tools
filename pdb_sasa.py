@@ -1,4 +1,5 @@
 import numpy as np
+import concurrent.futures
 from Probe import Probe
 from PDB import PDB
 from Timer import Timer
@@ -17,7 +18,7 @@ from Timer import Timer
 # + add timer
 # - visualize atom
 # + calculate polar/apolar surface
-# - concurrent processing
+# + concurrent processing
 # + update atom element radii
 
 
@@ -25,17 +26,14 @@ class Main:
     timer = Timer()
 
     def __init__(self, probe_points=100, probe_radius=1.4):
-        self.PDB = PDB()
+        self.PDB = PDB(r"C:\Users\Mahyar\PycharmProjects\PDB-SASA\1r42.pdb")
         self.probe = Probe(self.PDB.atoms, probe_points, probe_radius)
 
     def sasa(self):
         self.timer.start()
         print('----------\nFinding Near Probe Points')
-        for index, atom in enumerate(self.PDB.atoms):
-            radius = (self.probe.radius + atom.radius) - 0.001
-            points = self.probe.tree.query_radius([self.PDB.get_coordinates(atom)], radius)[0]
-            self.probe.coords[points] = 0
-            print('Searching Atom #%s points' % (index + 1), end='\r')
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(self.find_neighbor_points, self.PDB.atoms)
         print('Probe Points Found Successfully\n----------')
         self.timer.stop()
         self.timer.start()
@@ -49,6 +47,11 @@ class Main:
         print('SASA Calculated Successfully\n----------')
         self.timer.stop()
         self.timer.lapsed()
+
+    def find_neighbor_points(self, atom):
+        radius = (self.probe.radius + atom.radius) - 0.001
+        points = self.probe.tree.query_radius([self.PDB.get_coordinates(atom)], radius)[0]
+        self.probe.coords[points] = 0
 
     def calc_sasa(self, item):
         polar, apolar = 0, 0
@@ -88,6 +91,7 @@ class Main:
             self.PDB.structure.get_id(), t, p, a))
 
 
-myPDB = Main()
-myPDB.sasa()
-myPDB.report()
+if __name__ == '__main__':
+    myPDB = Main()
+    myPDB.sasa()
+    myPDB.report()
