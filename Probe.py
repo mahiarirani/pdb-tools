@@ -10,6 +10,7 @@ class Probe:
 
     def __init__(self, atoms, points, radius):
         self.points = points
+        self.probe = self.create_probe(self.points)
         self.radius = radius
         self.atoms = atoms
 
@@ -62,7 +63,7 @@ class Probe:
         return points[0]
 
     def attach_probe(self):
-        probe = self.create_probe(self.points)
+        probe = self.probe
         print('----------\nBegin Probe Attachment')
         for index, atom in enumerate(self.atoms):
             res = atom.get_parent().get_resname()
