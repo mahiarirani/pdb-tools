@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import filedialog
 import os
+import csv
+import unknown_radii
 from Bio.PDB import *
 from Timer import Timer
 
@@ -8,11 +10,16 @@ from Timer import Timer
 class PDB:
     timer = Timer()
 
-    def __init__(self, address=None):
+    def __init__(self, address=None, atom_radii_file=None):
         self.timer.start()
         self.structure = self.load(address)
-        self.timer.stop()
         self.atoms = self.get_atoms()
+        self.timer.stop()
+
+        self.timer.start()
+        self.atom_radii = self.load_atom_radii(atom_radii_file)
+        self.attach_atom_radii()
+        self.timer.stop()
 
     @staticmethod
     def load(file=None):
@@ -30,6 +37,35 @@ class PDB:
         print('PDB File Loaded Successfully\n----------')
         return structure
 
+    @staticmethod
+    def load_atom_radii(file=None):
+        print('----------\nLoading Atom Radii')
+        if file is None:
+            file = 'vdw_radii.csv'
+        atom_radii_dict = {}
+        with open(file, 'r') as data:
+            for line in csv.reader(data):
+                if line[0] == 'RESIDUE':
+                    residue = line[2]
+                    atom_radii_dict[residue] = {}
+                elif line[0] == 'ATOM':
+                    atom = line[1]
+                    atom_radii_dict[residue][atom] = {}
+                    atom_radii_dict[residue][atom]['radii'] = float(line[2])
+                    atom_radii_dict[residue][atom]['polar'] = bool(int(line[3]))
+        print('Atom Radii Loaded Successfully\n----------')
+        return atom_radii_dict
+
+    def attach_atom_radii(self):
+        for atom in self.atoms:
+            res = atom.get_parent().get_resname()
+            try:
+                atom.radius = self.atom_radii[res][atom.name]['radii']
+                atom.polar = self.atom_radii[res][atom.name]['polar']
+            except KeyError:
+                atom = unknown_radii.get_data(atom)
+        return self.atoms
+
     def get_atoms(self, item=None):
         if item is None:
             item = self.structure
@@ -38,3 +74,23 @@ class PDB:
     @staticmethod
     def get_coordinates(a):
         return [a.get_coord()[0], a.get_coord()[1], a.get_coord()[2]]
+
+    def get_item(self, model, chain, key):
+        models = Selection.unfold_entities(self.structure, 'M')
+        model = models[model] if len(models) > model else None
+        if model is None:
+            return None
+        chains = Selection.unfold_entities(model, 'C')
+        chain = chains[chain] if len(chains) > chain else None
+        if chain is None:
+            return None
+        residues = Selection.unfold_entities(chain, 'R')
+        if len(residues) > key and residues[key].id[1] == key:
+            return residues[key]
+        else:
+            for residue in residues:
+                if residue.id[1] == key:
+                    return residue
+                elif residue.id[1] > key:
+                    break
+            return None
