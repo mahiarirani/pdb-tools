@@ -1,9 +1,7 @@
 import numpy as np
 from sklearn.neighbors import KDTree
-import csv
-import unknown_radii
 from Timer import Timer
-
+from copy import deepcopy
 
 class Probe:
     timer = Timer()
@@ -15,42 +13,25 @@ class Probe:
         self.atoms = atoms
 
         self.timer.start()
-        self.atom_radii = self.load_atom_radii()
-        self.timer.stop()
-
-        self.timer.start()
         self.attach_probe()
         self.timer.stop()
 
-        self.coords = np.array(self.get_coordinates())
+        self.timer.start()
+        self.coords = self.get_coordinates()
+        self.timer.stop()
 
         self.timer.start()
         self.tree = self.create_tree(self.coords)
         self.timer.stop()
 
-    @staticmethod
-    def load_atom_radii(file='vdw_radii.csv'):
-        print('----------\nLoading Atom Radii')
-        atom_radii_dict = {}
-        with open(file, 'r') as data:
-            for line in csv.reader(data):
-                if line[0] == 'RESIDUE':
-                    residue = line[2]
-                    atom_radii_dict[residue] = {}
-                elif line[0] == 'ATOM':
-                    atom = line[1]
-                    atom_radii_dict[residue][atom] = {}
-                    atom_radii_dict[residue][atom]['radii'] = float(line[2])
-                    atom_radii_dict[residue][atom]['polar'] = bool(int(line[3]))
-        print('Atom Radii Loaded Successfully\n----------')
-        return atom_radii_dict
-
     def get_coordinates(self):
+        print('----------\nFetching Probe Coordinates')
         coords = []
         for item in self.atoms:
-            for probe in item.probe:
+            for probe in item.probe.coords:
                 coords.append(probe)
-        return coords
+        print('Probe Coordinates Fetched Successfully\n----------')
+        return np.array(coords)
 
     @staticmethod
     def create_probe(n):
@@ -64,15 +45,10 @@ class Probe:
 
     def attach_probe(self):
         probe = self.probe
+        buried_list = np.stack([[False]] * self.points)
         print('----------\nBegin Probe Attachment')
         for index, atom in enumerate(self.atoms):
-            res = atom.get_parent().get_resname()
-            try:
-                atom.radius = self.atom_radii[res][atom.name]['radii']
-                atom.polar = self.atom_radii[res][atom.name]['polar']
-            except KeyError:
-                atom = unknown_radii.get_data(atom)
-            atom.probe = probe * (self.radius + atom.radius) + atom.get_coord()
+            atom.probe = ProbeItem(probe * (self.radius + atom.radius) + atom.get_coord(), atom, buried_list)
             print('Creating Atom #%s [%s] Probe' % (index + 1, atom.element), end='\r')
         print('Probe Attached Successfully\n----------')
 
@@ -82,3 +58,16 @@ class Probe:
         tree = KDTree(item)
         print('KDTree Created Successfully\n----------')
         return tree
+
+    def get_points_in_atom_probe(self, atoms):
+        radius = [(self.radius + atom.radius) - 0.001 for atom in atoms]
+        atoms = [[a.get_coord()[0], a.get_coord()[1], a.get_coord()[2]] for a in atoms]
+        return self.tree.query_radius(atoms, radius)
+
+
+class ProbeItem:
+    def __init__(self, coords, atom, buried_list):
+        self.coords = coords
+        self.buried = deepcopy(buried_list)
+        self.atom = atom
+
