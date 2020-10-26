@@ -3,8 +3,7 @@ import time
 
 class Timer:
     def __init__(self):
-        self.now = time.time()
-        self.init = self.now
+        self.init = time.time()
         self.begin = 0
         self.end = 0
 
@@ -17,6 +16,9 @@ class Timer:
     def lapsed(self):
         print('Total ', end="")
         self.time_convert(time.time() - self.init)
+
+    def reset(self):
+        self.init = time.time()
 
     @staticmethod
     def time_convert(sec):
