@@ -8,7 +8,7 @@ class FastSASA:
     timer = Timer()
 
     def __init__(self, probe_points=100, probe_radius=1.4):
-        self.PDB = PDB(r"C:\Users\Mahyar\PycharmProjects\PDB-SASA\1r42.pdb")
+        self.PDB = PDB()
         self.probe = Probe(self.PDB.atoms, probe_points, probe_radius)
 
     def sasa(self, report=''):
