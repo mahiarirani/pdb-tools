@@ -34,6 +34,7 @@ class PDB:
         file_name, file_extension = os.path.splitext(file)
 
         parser = PDBParser()
+        parser.QUIET = True
         structure = parser.get_structure(file_name, path + '/' + file)
         print('PDB File Loaded Successfully\n----------')
         return structure
