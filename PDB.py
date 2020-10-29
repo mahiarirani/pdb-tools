@@ -78,7 +78,11 @@ class PDB:
         return [a.get_coord()[0], a.get_coord()[1], a.get_coord()[2]]
 
     def get_item(self, model, chain, residue):
-        return self.structure[model][chain][(' ', residue, ' ')]
+        try:
+            residue = self.structure[model][chain][(' ', residue, ' ')]
+        except KeyError:
+            residue = None
+        return residue
 
     def remove_water_residues(self):
         water_residues = []
