@@ -131,6 +131,42 @@ class FastSASA:
                 print('\b\b]')
         print('\n----------')
 
+    def chain_neighbors(self, model, chain):
+        neighbors = self.get_chain_neighbors(model, chain)
+        self.report_chain_neighbors(model, chain, neighbors)
+
+    def get_chain_neighbors(self, model, chain):
+        self.timer.start()
+        print('----------\nSearching Chain Neighbors ')
+        chain = self.PDB.structure[model][chain]
+        chain.neighbors = {}
+        for residue in chain.get_residues():
+            print('Getting Residue #%s Neighbors' % residue.id[1], end='\r')
+            neighbors = self.get_residue_neighbors(residue, True)[0]
+            if len(neighbors) > 1:
+                ch = residue.get_parent()
+                for neighbor in [key for key in neighbors.keys() if key not in [ch.id]]:
+                    if ch.neighbors.get(neighbor) is None:
+                        ch.neighbors[neighbor] = {}
+                    if len(neighbors[neighbor]):
+                        ch.neighbors[neighbor][neighbors[neighbor][0]] = True
+        for neighbor in chain.neighbors:
+            chain.neighbors[neighbor] = list(chain.neighbors[neighbor].keys())
+        print('Chain Neighbors Found Successfully\n----------')
+        self.timer.stop()
+        return chain.neighbors
+
+    def report_chain_neighbors(self, model, chain, neighbors):
+        print('----------\nResult :\n')
+        print('Selected Chain is %s \n' % chain)
+        for chain in neighbors:
+            print('Chain %s :  [' % chain, end='')
+            for residue in neighbors[chain]:
+                print('%s #%s ,' % (self.PDB.get_item(model, chain, residue).get_resname(), residue),
+                      end='')
+            print('\b\b]')
+        print('\n----------')
+
 
 if __name__ == '__main__':
     myPDB = FastSASA()
@@ -140,4 +176,7 @@ if __name__ == '__main__':
     myPDB.timer.lapsed()
     myPDB.timer.reset()
     myPDB.residue_neighbors(0, 'A', 20)
+    myPDB.timer.lapsed()
+    myPDB.timer.reset()
+    myPDB.chain_neighbors(0, 'A')
     myPDB.timer.lapsed()
