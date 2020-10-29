@@ -84,8 +84,7 @@ class FastSASA:
         if item is None:
             return None
         atoms = self.PDB.get_atoms(item)
-        for index, neighbors in enumerate(self.get_atoms_neighbors(atoms)):
-            atoms[index].neighbors = neighbors
+        atoms = self.get_atoms_neighbors(atoms)
         print('----------\nBegin Residue Neighbor Search')
         item.neighbors = {}
         for atom in atoms:
@@ -106,11 +105,10 @@ class FastSASA:
     def get_atoms_neighbors(self, atoms):
         print('----------\nBegin Atom Neighbor Search')
         atoms_points = self.probe.get_points_in_atom_probe(atoms)
-        neighbors = []
-        for atom_points in atoms_points:
-            neighbors.append(self.probe.atoms[atom] for atom in atom_points // self.probe.points)
+        for index, atom_points in enumerate(atoms_points):
+            atoms[index].neighbors = [self.probe.atoms[atom] for atom in atom_points // self.probe.points]
         print('Atom Neighbors Found Successfully\n----------')
-        return neighbors
+        return atoms
 
     def report_neighbors(self, neighbors):
         print('----------\nResult\n----------')
