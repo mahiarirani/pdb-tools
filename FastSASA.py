@@ -76,38 +76,42 @@ class FastSASA:
             self.PDB.structure.get_id(), t, p, a))
 
     def residue_neighbors(self, model, chain, residue):
-        neighbors = self.get_residue_neighbors(model, chain, residue)
-        self.report_neighbors(neighbors)
-
-    def get_residue_neighbors(self, model, chain, residue):
         item = self.PDB.get_item(model, chain, residue)
         if item is None:
             return None
-        atoms = self.PDB.get_atoms(item)
+        neighbors = self.get_residue_neighbors(item)
+        self.report_neighbors(neighbors)
+
+    def get_residue_neighbors(self, residue):
+        atoms = self.PDB.get_atoms(residue)
         atoms = self.get_atoms_neighbors(atoms)
+        self.timer.start()
         print('----------\nBegin Residue Neighbor Search')
-        item.neighbors = {}
+        residue.neighbors = {}
         for atom in atoms:
             for neighbor in atom.neighbors:
                 res = neighbor.get_parent()
                 chain = res.get_parent()
                 model = chain.get_parent()
-                if res != item:
-                    if item.neighbors.get(model.id) is None:
-                        item.neighbors[model.id] = {}
-                    if item.neighbors[model.id].get(chain.id) is None:
-                        item.neighbors[model.id][chain.id] = []
-                    if res.id[1] not in item.neighbors[model.id][chain.id]:
-                        item.neighbors[model.id][chain.id].append(res.id[1])
+                if res != residue:
+                    if residue.neighbors.get(model.id) is None:
+                        residue.neighbors[model.id] = {}
+                    if residue.neighbors[model.id].get(chain.id) is None:
+                        residue.neighbors[model.id][chain.id] = []
+                    if res.id[1] not in residue.neighbors[model.id][chain.id]:
+                        residue.neighbors[model.id][chain.id].append(res.id[1])
         print('Residue Neighbors Found Successfully\n----------')
-        return item.neighbors
+        self.timer.stop()
+        return residue.neighbors
 
     def get_atoms_neighbors(self, atoms):
+        self.timer.start()
         print('----------\nBegin Atom Neighbor Search')
         atoms_points = self.probe.get_points_in_atom_probe(atoms)
         for index, atom_points in enumerate(atoms_points):
             atoms[index].neighbors = [self.probe.atoms[atom] for atom in atom_points // self.probe.points]
         print('Atom Neighbors Found Successfully\n----------')
+        self.timer.stop()
         return atoms
 
     def report_neighbors(self, neighbors):
