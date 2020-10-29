@@ -24,7 +24,7 @@ class PDB:
 
     @staticmethod
     def load(file=None):
-        print('----------\nLoading PDB File')
+        print('----------\nLoading PDB File', end='\r')
         if file is None:
             root = tk.Tk()
             root.withdraw()
@@ -36,12 +36,12 @@ class PDB:
         parser = PDBParser()
         parser.QUIET = True
         structure = parser.get_structure(file_name, path + '/' + file)
-        print('PDB File Loaded Successfully\n----------')
+        print('PDB File Loaded Successfully')
         return structure
 
     @staticmethod
     def load_atom_radii(file=None):
-        print('----------\nLoading Atom Radii')
+        print('----------\nLoading Atom Radii', end='\r')
         if file is None:
             file = 'vdw_radii.csv'
         atom_radii_dict = {}
@@ -55,7 +55,7 @@ class PDB:
                     atom_radii_dict[residue][atom] = {}
                     atom_radii_dict[residue][atom]['radii'] = float(line[2])
                     atom_radii_dict[residue][atom]['polar'] = bool(int(line[3]))
-        print('Atom Radii Loaded Successfully\n----------')
+        print('Atom Radii Loaded Successfully')
         return atom_radii_dict
 
     def attach_atom_radii(self):

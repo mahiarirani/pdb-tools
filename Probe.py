@@ -3,6 +3,7 @@ from sklearn.neighbors import KDTree
 from Timer import Timer
 from copy import deepcopy
 
+
 class Probe:
     timer = Timer()
 
@@ -25,12 +26,12 @@ class Probe:
         self.timer.stop()
 
     def get_coordinates(self):
-        print('----------\nFetching Probe Coordinates')
+        print('----------\nFetching Probe Coordinates', end='\r')
         coords = []
         for item in self.atoms:
             for probe in item.probe.coords:
                 coords.append(probe)
-        print('Probe Coordinates Fetched Successfully\n----------')
+        print('Probe Coordinates Fetched Successfully')
         return np.array(coords)
 
     @staticmethod
@@ -46,17 +47,17 @@ class Probe:
     def attach_probe(self):
         probe = self.probe
         buried_list = np.stack([[False]] * self.points)
-        print('----------\nBegin Probe Attachment')
+        print('----------\nBegin Probe Attachment', end='\r')
         for index, atom in enumerate(self.atoms):
             atom.probe = ProbeItem(probe * (self.radius + atom.radius) + atom.get_coord(), atom, buried_list)
             print('Creating Atom #%s [%s] Probe' % (index + 1, atom.element), end='\r')
-        print('Probe Attached Successfully\n----------')
+        print('Probe Attached Successfully')
 
     @staticmethod
     def create_tree(item):
-        print('----------\nCreating KDTree')
+        print('----------\nCreating KDTree', end='\r')
         tree = KDTree(item)
-        print('KDTree Created Successfully\n----------')
+        print('KDTree Created Successfully')
         return tree
 
     def get_points_in_atom_probe(self, atoms):

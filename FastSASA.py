@@ -18,24 +18,24 @@ class FastSASA:
 
     def get_neighbor_probe_points(self):
         self.timer.start()
-        print('----------\nFinding Neighbor Probe Points')
+        print('----------\nFinding Neighbor Probe Points', end='\r')
         atoms_points = self.probe.get_points_in_atom_probe(self.PDB.atoms)
         for atom, points in enumerate(atoms_points):
             self.probe.atoms[atom].probe.buried[points % self.probe.points] = True
             print('Searching in Atom #%s Radius' % (atom + 1), end='\r')
-        print('Neighbor Probe Points Found Successfully\n----------')
+        print('Neighbor Probe Points Found Successfully')
         self.timer.stop()
 
     def calc_sasa(self):
         self.timer.start()
-        print('----------\nBegin SASA Calculation')
+        print('----------\nBegin SASA Calculation', end='\r')
         for index, atom in enumerate(self.PDB.atoms):
             pp = self.probe.points
             atom_probe_points = self.probe.atoms[index].probe.buried
             atom.accessibility = sum([not p[0] for p in atom_probe_points]) / pp
             atom.accessibility *= 4 * np.pi * (atom.radius + self.probe.radius) ** 2
             print('Atom #%s [%s] SASA is %s Å' % (index + 1, atom.element, atom.accessibility), end='\r')
-        print('SASA Calculated Successfully\n----------')
+        print('SASA Calculated Successfully')
         self.timer.stop()
 
     def sum_sasa(self, item):
@@ -72,9 +72,8 @@ class FastSASA:
                             print('Atom #%s SASA is %s Å [Polar : %s]' % (
                                 atom.get_name(), atom.accessibility, atom.polar))
         t, p, a = self.sum_sasa(self.PDB.structure)
-        print('Total SASA of %s is %s Å [Polar: %s Å / Apolar: %s Å]' % (
+        print('Total SASA of %s is %s Å [Polar: %s Å / Apolar: %s Å]\n' % (
             self.PDB.structure.get_id(), t, p, a))
-        print('\n----------')
 
     def residue_neighbors(self, model, chain, residue):
         item = self.PDB.get_item(model, chain, residue)
@@ -88,7 +87,7 @@ class FastSASA:
         atoms = self.get_atoms_neighbors(atoms, quiet)
         if not quiet:
             self.timer.start()
-            print('----------\nBegin Residue Neighbor Search')
+            print('----------\nBegin Residue Neighbor Search', end='\r')
         residue.neighbors = {}
         for atom in atoms:
             for neighbor_residue in list(set(n.get_parent() for n in atom.neighbors if n.get_parent)):
@@ -102,19 +101,19 @@ class FastSASA:
                     residue.neighbors[model.id][chain.id].append(neighbor_residue.id[1])
                     residue.neighbors[model.id][chain.id] = list(set(residue.neighbors[model.id][chain.id]))
         if not quiet:
-            print('Residue Neighbors Found Successfully\n----------')
+            print('Residue Neighbors Found Successfully')
             self.timer.stop()
         return residue.neighbors
 
     def get_atoms_neighbors(self, atoms, quiet=False):
         if not quiet:
             self.timer.start()
-            print('----------\nBegin Atom Neighbor Search')
+            print('----------\nBegin Atom Neighbor Search', end='\r')
         atoms_points = self.probe.get_points_in_atom_probe(atoms)
         for index, atom_points in enumerate(atoms_points):
             atoms[index].neighbors = [self.probe.atoms[atom] for atom in atom_points // self.probe.points]
         if not quiet:
-            print('Atom Neighbors Found Successfully\n----------')
+            print('Atom Neighbors Found Successfully')
             self.timer.stop()
         return atoms
 
@@ -129,7 +128,7 @@ class FastSASA:
                     print('%s #%s ,' % (self.PDB.get_item(model, chain, residue).get_resname(), residue),
                           end='')
                 print('\b\b]')
-        print('\n----------')
+        print('')
 
     def chain_neighbors(self, model, chain):
         neighbors = self.get_chain_neighbors(model, chain)
@@ -137,7 +136,7 @@ class FastSASA:
 
     def get_chain_neighbors(self, model, chain):
         self.timer.start()
-        print('----------\nSearching Chain Neighbors ')
+        print('----------\nSearching Chain Neighbors', end='\r')
         chain = self.PDB.structure[model][chain]
         chain.neighbors = {}
         for residue in chain.get_residues():
@@ -152,7 +151,7 @@ class FastSASA:
                         ch.neighbors[neighbor][neighbors[neighbor][0]] = True
         for neighbor in chain.neighbors:
             chain.neighbors[neighbor] = list(chain.neighbors[neighbor].keys())
-        print('Chain Neighbors Found Successfully\n----------')
+        print('Chain Neighbors Found Successfully')
         self.timer.stop()
         return chain.neighbors
 
@@ -165,7 +164,7 @@ class FastSASA:
                 print('%s #%s ,' % (self.PDB.get_item(model, chain, residue).get_resname(), residue),
                       end='')
             print('\b\b]')
-        print('\n----------')
+        print('')
 
 
 if __name__ == '__main__':
