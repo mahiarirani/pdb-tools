@@ -51,7 +51,7 @@ class FastSASA:
         return total, polar, apolar
 
     def report_sasa(self, method=''):
-        print('----------\nResult\n----------')
+        print('----------\nResult :\n')
         for model in self.PDB.structure:
             if method.__contains__('m'):
                 t, p, a = self.sum_sasa(model)
@@ -74,13 +74,14 @@ class FastSASA:
         t, p, a = self.sum_sasa(self.PDB.structure)
         print('Total SASA of %s is %s Å [Polar: %s Å / Apolar: %s Å]' % (
             self.PDB.structure.get_id(), t, p, a))
+        print('\n----------')
 
     def residue_neighbors(self, model, chain, residue):
         item = self.PDB.get_item(model, chain, residue)
         if item is None:
             return None
         neighbors = self.get_residue_neighbors(item)
-        self.report_neighbors(neighbors)
+        self.report_neighbors(item, neighbors)
 
     def get_residue_neighbors(self, residue):
         atoms = self.PDB.get_atoms(residue)
@@ -114,8 +115,9 @@ class FastSASA:
         self.timer.stop()
         return atoms
 
-    def report_neighbors(self, neighbors):
-        print('----------\nResult\n----------')
+    def report_neighbors(self, item, neighbors):
+        print('----------\nResult :\n')
+        print('Selected Residue is %s #%s\n' % (item.get_resname(), item.id[1]))
         for model in neighbors:
             print('Model #%s : ' % model)
             for chain in neighbors[model]:
@@ -124,10 +126,13 @@ class FastSASA:
                     print('%s #%s ,' % (self.PDB.get_item(model, chain, residue).get_resname(), residue),
                           end='')
                 print('\b\b]')
+        print('\n----------')
 
 
 if __name__ == '__main__':
     myPDB = FastSASA()
+    myPDB.timer.lapsed()
+    myPDB.timer.reset()
     myPDB.sasa()
     myPDB.timer.lapsed()
     myPDB.timer.reset()
