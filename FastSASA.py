@@ -91,17 +91,16 @@ class FastSASA:
             print('----------\nBegin Residue Neighbor Search')
         residue.neighbors = {}
         for atom in atoms:
-            for neighbor in atom.neighbors:
-                res = neighbor.get_parent()
-                chain = res.get_parent()
+            for neighbor_residue in list(set(n.get_parent() for n in atom.neighbors if n.get_parent)):
+                chain = neighbor_residue.get_parent()
                 model = chain.get_parent()
-                if res != residue:
+                if neighbor_residue != residue:
                     if residue.neighbors.get(model.id) is None:
                         residue.neighbors[model.id] = {}
                     if residue.neighbors[model.id].get(chain.id) is None:
                         residue.neighbors[model.id][chain.id] = []
-                    if res.id[1] not in residue.neighbors[model.id][chain.id]:
-                        residue.neighbors[model.id][chain.id].append(res.id[1])
+                    residue.neighbors[model.id][chain.id].append(neighbor_residue.id[1])
+                    residue.neighbors[model.id][chain.id] = list(set(residue.neighbors[model.id][chain.id]))
         if not quiet:
             print('Residue Neighbors Found Successfully\n----------')
             self.timer.stop()
