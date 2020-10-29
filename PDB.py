@@ -13,6 +13,7 @@ class PDB:
     def __init__(self, address=None, atom_radii_file=None):
         self.timer.start()
         self.structure = self.load(address)
+        self.remove_water_residues()
         self.atoms = self.get_atoms()
         self.timer.stop()
 
@@ -77,3 +78,11 @@ class PDB:
 
     def get_item(self, model, chain, residue):
         return self.structure[model][chain][(' ', residue, ' ')]
+
+    def remove_water_residues(self):
+        water_residues = []
+        residues = [r for r in self.structure.get_residues()]
+        for residue in residues:
+            if residue.get_id()[0] == 'W':
+                water_residues.append(residue)
+        [water_residue.get_parent().detach_child(water_residue.id) for water_residue in water_residues]
