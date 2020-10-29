@@ -119,7 +119,7 @@ class FastSASA:
             for chain in neighbors[model]:
                 print('Chain %s : [' % chain, end='')
                 for residue in neighbors[model][chain]:
-                    print('%s #%s ,' % (self.PDB.get_item(model, ord(chain) - 65, residue).get_resname(), residue),
+                    print('%s #%s ,' % (self.PDB.get_item(model, chain, residue).get_resname(), residue),
                           end='')
                 print('\b\b]')
 
@@ -129,5 +129,5 @@ if __name__ == '__main__':
     myPDB.sasa()
     myPDB.timer.lapsed()
     myPDB.timer.reset()
-    myPDB.residue_neighbors(0, 0, 20)
+    myPDB.residue_neighbors(0, 'A', 20)
     myPDB.timer.lapsed()

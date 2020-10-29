@@ -75,22 +75,5 @@ class PDB:
     def get_coordinates(a):
         return [a.get_coord()[0], a.get_coord()[1], a.get_coord()[2]]
 
-    def get_item(self, model, chain, key):
-        models = Selection.unfold_entities(self.structure, 'M')
-        model = models[model] if len(models) > model else None
-        if model is None:
-            return None
-        chains = Selection.unfold_entities(model, 'C')
-        chain = chains[chain] if len(chains) > chain else None
-        if chain is None:
-            return None
-        residues = Selection.unfold_entities(chain, 'R')
-        if len(residues) > key and residues[key].id[1] == key:
-            return residues[key]
-        else:
-            for residue in residues:
-                if residue.id[1] == key:
-                    return residue
-                elif residue.id[1] > key:
-                    break
-            return None
+    def get_item(self, model, chain, residue):
+        return self.structure[model][chain][(' ', residue, ' ')]
