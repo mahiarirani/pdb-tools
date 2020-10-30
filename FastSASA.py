@@ -1,4 +1,5 @@
 import numpy as np
+from collections import OrderedDict
 from Probe import Probe
 from PDB import PDB
 from Timer import Timer
@@ -90,7 +91,8 @@ class FastSASA:
             print('----------\nBegin Residue Neighbor Search', end='\r')
         residue.neighbors = {}
         for atom in atoms:
-            for neighbor_residue in list(set(n.get_parent() for n in atom.neighbors if n.get_parent)):
+            neighbor_residues = [n.get_parent() for n in atom.neighbors if n.get_parent() is not residue]
+            for neighbor_residue in list(OrderedDict.fromkeys(neighbor_residues)):
                 chain = neighbor_residue.get_parent()
                 model = chain.get_parent()
                 if neighbor_residue != residue:
@@ -99,7 +101,9 @@ class FastSASA:
                     if residue.neighbors[model.id].get(chain.id) is None:
                         residue.neighbors[model.id][chain.id] = []
                     residue.neighbors[model.id][chain.id].append(neighbor_residue.id[1])
-                    residue.neighbors[model.id][chain.id] = list(set(residue.neighbors[model.id][chain.id]))
+        for model in residue.neighbors:
+            for chain in residue.neighbors[model]:
+                residue.neighbors[model][chain] = list(OrderedDict.fromkeys(residue.neighbors[model][chain]))
         if not quiet:
             print('Residue Neighbors Found Successfully')
             self.timer.stop()
@@ -146,11 +150,11 @@ class FastSASA:
                 ch = residue.get_parent()
                 for neighbor in [key for key in neighbors.keys() if key not in [ch.id]]:
                     if ch.neighbors.get(neighbor) is None:
-                        ch.neighbors[neighbor] = {}
+                        ch.neighbors[neighbor] = []
                     if len(neighbors[neighbor]):
-                        ch.neighbors[neighbor][neighbors[neighbor][0]] = True
+                        ch.neighbors[neighbor].append(neighbors[neighbor][0])
         for neighbor in chain.neighbors:
-            chain.neighbors[neighbor] = list(chain.neighbors[neighbor].keys())
+            chain.neighbors[neighbor] = list(OrderedDict.fromkeys(chain.neighbors[neighbor]))
         print('Chain Neighbors Found Successfully')
         self.timer.stop()
         return chain.neighbors
