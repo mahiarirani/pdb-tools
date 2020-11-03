@@ -149,8 +149,8 @@ class FastSASA:
         chain.neighbors = {}
         for residue in chain.get_residues():
             print('Getting Residue #%s Neighbors' % residue.id[1], end='\r')
-            neighbors = self.get_residue_neighbors(residue, True)[0]
-            if len(neighbors) > 1:
+            neighbors = self.get_residue_neighbors(residue, True)[chain.get_parent().id]
+            if neighbors is not None and len(neighbors) > 1:
                 ch = residue.get_parent()
                 for neighbor in [key for key in neighbors.keys() if key not in [ch.id]]:
                     if ch.neighbors.get(neighbor) is None:
