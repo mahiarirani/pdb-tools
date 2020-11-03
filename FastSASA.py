@@ -154,23 +154,30 @@ class FastSASA:
                 ch = residue.get_parent()
                 for neighbor in [key for key in neighbors.keys() if key not in [ch.id]]:
                     if ch.neighbors.get(neighbor) is None:
-                        ch.neighbors[neighbor] = []
+                        ch.neighbors[neighbor] = {}
                     if len(neighbors[neighbor]):
-                        ch.neighbors[neighbor].append(neighbors[neighbor][0])
+                        ch.neighbors[neighbor][residue.id[1]] = neighbors[neighbor][0]
         for neighbor in chain.neighbors:
-            chain.neighbors[neighbor] = list(OrderedDict.fromkeys(chain.neighbors[neighbor]))
+            temp = {val: key for key, val in chain.neighbors[neighbor].items()}
+            chain.neighbors[neighbor] = {val: key for key, val in temp.items()}
         print('Chain Neighbors Found Successfully')
         self.timer.stop()
         return chain.neighbors
 
-    def report_chain_neighbors(self, model, chain, neighbors):
+    def report_chain_neighbors(self, model, selected_chain, neighbors):
         print('----------\nResult :\n')
-        print('Selected Chain is %s \n' % chain)
+        print('Selected Chain is %s \n' % selected_chain)
         for chain in neighbors:
+            counter = 0 if len(neighbors[chain]) > 3 else 1
             print('Chain %s :  [' % chain, end='')
-            for residue in neighbors[chain]:
-                print('%s #%s ,' % (self.PDB.get_item(model, chain, residue).get_resname(), residue),
-                      end='')
+            for own_residue in neighbors[chain]:
+                if counter % 3 == 0:
+                    print('', end='\n\t')
+                counter += 1
+                neighbor = neighbors[chain][own_residue]
+                own_residue_name = self.PDB.get_item(model, selected_chain, own_residue).get_resname()
+                neighbor_name = self.PDB.get_item(model, chain, neighbor).get_resname()
+                print('%s #%s -> %s #%s ,' % (own_residue_name, own_residue, neighbor_name, neighbor), end='')
             print('\b\b]')
         print('')
 
