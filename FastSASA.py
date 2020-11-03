@@ -79,6 +79,7 @@ class FastSASA:
     def residue_neighbors(self, model, chain, residue):
         item = self.PDB.get_item(model, chain, residue)
         if item is None:
+            print('----------\nError Getting Residue Neighbors :\nResidue not Found\n')
             return None
         neighbors = self.get_residue_neighbors(item)
         self.report_residue_neighbors(item, neighbors)
@@ -135,13 +136,16 @@ class FastSASA:
         print('')
 
     def chain_neighbors(self, model, chain):
-        neighbors = self.get_chain_neighbors(model, chain)
+        item = self.PDB.get_item(model, chain)
+        if item is None:
+            print('----------\nError Getting Chain Neighbors :\nChain not Found\n')
+            return None
+        neighbors = self.get_chain_neighbors(item)
         self.report_chain_neighbors(model, chain, neighbors)
 
-    def get_chain_neighbors(self, model, chain):
+    def get_chain_neighbors(self, chain):
         self.timer.start()
         print('----------\nSearching Chain Neighbors', end='\r')
-        chain = self.PDB.structure[model][chain]
         chain.neighbors = {}
         for residue in chain.get_residues():
             print('Getting Residue #%s Neighbors' % residue.id[1], end='\r')
