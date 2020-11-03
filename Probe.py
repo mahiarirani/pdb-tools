@@ -46,7 +46,7 @@ class Probe:
 
     def attach_probe(self):
         probe = self.probe
-        buried_list = np.stack([[False]] * self.points)
+        buried_list = np.stack([False] * self.points)
         print('----------\nBegin Probe Attachment', end='\r')
         for index, atom in enumerate(self.atoms):
             atom.probe = ProbeItem(probe * (self.radius + atom.radius) + atom.get_coord(), atom, buried_list)

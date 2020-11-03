@@ -33,7 +33,7 @@ class FastSASA:
         for index, atom in enumerate(self.PDB.atoms):
             pp = self.probe.points
             atom_probe_points = self.probe.atoms[index].probe.buried
-            atom.accessibility = sum([not p[0] for p in atom_probe_points]) / pp
+            atom.accessibility = sum([not p for p in atom_probe_points]) / pp
             atom.accessibility *= 4 * np.pi * (atom.radius + self.probe.radius) ** 2
             print('Atom #%s [%s] SASA is %s Å' % (index + 1, atom.element, atom.accessibility), end='\r')
         print('SASA Calculated Successfully')
