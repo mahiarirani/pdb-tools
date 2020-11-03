@@ -65,7 +65,7 @@ class PDB:
                 atom.radius = self.atom_radii[res][atom.name]['radii']
                 atom.polar = self.atom_radii[res][atom.name]['polar']
             except KeyError:
-                atom = unknown_radii.get_data(atom)
+                atom.radius, atom.polar = unknown_radii.get_data(atom.element, atom.name)
         return self.atoms
 
     def get_atoms(self, item=None):
