@@ -15,6 +15,7 @@ class FastSASA:
     def sasa(self, report=''):
         self.get_neighbor_probe_points()
         self.calc_sasa()
+        self.sum_sasa(self.PDB.structure)
         self.report_sasa(report)
 
     def get_neighbor_probe_points(self):
@@ -41,41 +42,43 @@ class FastSASA:
         self.timer.stop()
 
     def sum_sasa(self, item):
-        polar, non_polar, size = 0, 0, 0
-        atoms = self.PDB.get_atoms(item)
-        for atom in atoms:
-            size += atom.size
-            if atom.polar:
-                polar += atom.sasa
-            else:
-                non_polar += atom.sasa
-        total = polar + non_polar
-        return total, polar, non_polar, total / size * 100
+        try:
+            return item.sasa, item.size
+        except AttributeError:
+            total_sasa, total_size = 0, 0
+            for i in item.get_list():
+                item_sasa, item_size = self.sum_sasa(i)
+                total_sasa += item_sasa
+                total_size += item_size
+            item.sasa = total_sasa
+            item.size = total_size
+            item.accessibility = total_sasa / total_size * 100
+            return item.sasa, item.size
 
     def report_sasa(self, method=''):
         print('----------\nResult :\n')
         for model in self.PDB.structure:
             if method.__contains__('m'):
-                t, p, n, a = map(round, self.sum_sasa(model), [2, 2, 2, 2])
-                print('Model #%s SASA is %s Å (%s%%) [Polar : %s Å / Non-Polar : %s Å]' % (
-                    model.id, t, a, p, n))
+                t, s = map(round, self.sum_sasa(model), [2, 2])
+                print('Model #%s SASA is %s Å (%s%%)' % (
+                    model.id, t, round(t / s * 100, 2)))
             for chain in model:
                 if method.__contains__('c'):
-                    t, p, n, a = map(round, self.sum_sasa(chain), [2, 2, 2, 2])
-                    print('Chain #%s SASA is %s Å (%s%%) [Polar : %s Å / Non-Polar : %s Å]' % (
-                        chain.id, t, a, p, n))
+                    t, s = map(round, self.sum_sasa(chain), [2, 2])
+                    print('Chain #%s SASA is %s Å (%s%%)' % (
+                        chain.id, t, round(t / s * 100, 2)))
                 for residue in chain:
                     if method.__contains__('r'):
-                        t, p, n, a = map(round, self.sum_sasa(residue), [2, 2, 2, 2])
-                        print('Residue %s #%s SASA is %s Å (%s%%) [Polar : %s Å / Non-Polar : %s Å]' % (
-                            residue.get_resname(), residue.get_id()[1], t, a, p, n))
+                        t, s = map(round, self.sum_sasa(residue), [2, 2])
+                        print('Residue %s #%s SASA is %s Å (%s%%)' % (
+                            residue.get_resname(), residue.get_id()[1], t, round(t / s * 100, 2)))
                     for atom in residue:
                         if method.__contains__('a'):
                             print('Atom #%s SASA is %s Å [Polar : %s]' % (
                                 atom.get_name(), atom.sasa, atom.polar))
-        t, p, n, a = map(round, self.sum_sasa(self.PDB.structure), [2, 2, 2, 2])
-        print('Total SASA of %s is %s Å (%s%%) [Polar: %s Å / Non-Polar: %s Å]\n' % (
-            self.PDB.structure.get_id(), t, a, p, n))
+        t, s = map(round, self.sum_sasa(self.PDB.structure), [2, 2])
+        print('Total SASA of %s is %s Å (%s%%)\n' % (
+            self.PDB.structure.get_id(), t, round(t / s * 100, 2)))
 
     def residue_neighbors(self, model, chain, residue):
         item = self.PDB.get_item(model, chain, residue)
