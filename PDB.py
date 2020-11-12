@@ -10,7 +10,7 @@ from Timer import Timer
 class PDB:
     timer = Timer()
 
-    def __init__(self, address=None, atom_radii_file=None):
+    def __init__(self, address=None, atom_radii_file=None, residue_classifications_file=None):
         self.timer.start()
         self.structure = self.load(address)
         self.remove_other_residues()
@@ -20,6 +20,11 @@ class PDB:
         self.timer.start()
         self.atom_radii = self.load_atom_radii(atom_radii_file)
         self.attach_atom_radii()
+        self.timer.stop()
+
+        self.timer.start()
+        self.residue_classifications = self.load_residue_classifications(residue_classifications_file)
+        self.attach_residue_classification()
         self.timer.stop()
 
     @staticmethod
@@ -67,6 +72,32 @@ class PDB:
             except KeyError:
                 atom.radius, atom.polar = unknown_radii.get_data(atom.element, atom.name)
         return self.atoms
+
+    @staticmethod
+    def load_residue_classifications(file=None):
+        print('----------\nLoading Residue Classes', end='\r')
+        if file is None:
+            file = 'residue_classifications.csv'
+        residue_classes_dict = {}
+        with open(file, 'r') as data:
+            reader = csv.reader(data)
+            next(reader)
+            for line in reader:
+                residue_classes_dict[line[0]] = {}
+                residue_classes_dict[line[0]]['polar'] = bool(line[1])
+                residue_classes_dict[line[0]]['charge'] = line[1]
+        print('Residue Classes Loaded Successfully')
+        return residue_classes_dict
+
+    def attach_residue_classification(self):
+        residues = self.structure.get_residues()
+        for residue in residues:
+            try:
+                residue.polar = self.residue_classifications[residue.get_resname()]['polar']
+                residue.charge = self.residue_classifications[residue.get_resname()]['charge']
+            except KeyError:
+                residue.polar = False
+                residue.charge = 0
 
     def get_atoms(self, item=None):
         if item is None:
