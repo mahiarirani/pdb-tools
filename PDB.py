@@ -84,8 +84,8 @@ class PDB:
             next(reader)
             for line in reader:
                 residue_classes_dict[line[0]] = {}
-                residue_classes_dict[line[0]]['polar'] = bool(line[1])
-                residue_classes_dict[line[0]]['charge'] = line[1]
+                residue_classes_dict[line[0]]['polar'] = bool(int(line[1]))
+                residue_classes_dict[line[0]]['charge'] = int(line[2])
         print('Residue Classes Loaded Successfully')
         return residue_classes_dict
 
