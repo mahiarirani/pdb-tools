@@ -185,6 +185,67 @@ class FastSASA:
             print('\b\b]')
         print('')
 
+    def critical_residues(self, threshold, model, chain):
+        try:
+            _ = self.PDB.structure.sasa
+        except AttributeError:
+            self.sasa()
+        item = self.PDB.get_item(model, chain)
+        if item is None:
+            print('----------\nError Getting Chain Neighbors :\nChain not Found\n')
+            return None
+        critical_residues = self.get_critical_residues(threshold, model, chain, item)
+        self.report_critical_residues(critical_residues, chain)
+
+    def get_critical_residues(self, threshold, model, chain, item):
+        self.timer.start()
+        print('----------\nSearching For Critical Residues', end='\r')
+        critical_residues = []
+        residues = item.get_residues()
+        for residue in residues:
+            if residue.accessibility > threshold:
+                continue
+            print('Checking Residue #%s Neighbors' % residue.id[1], end='\r')
+            neighbors = self.get_residue_neighbors(residue, True)
+            equal, non = [], []
+            for r in neighbors[model][chain]:
+                res = self.PDB.get_item(model, chain, r)
+                if res.accessibility < threshold:
+                    if res.polar == residue.polar:
+                        equal.append(r)
+                    else:
+                        non.append(r)
+            if len(equal) == len(neighbors[model][chain]) and not residue.polar:
+                critical_residues.append({'residue': residue, 'type': 'HydPhb-HydPhb', 'neighbors': equal})
+            elif len(non) == len(neighbors[model][chain]) and residue.polar:
+                critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhb', 'neighbors': non})
+            elif len(equal) != 0 and residue.polar:
+                critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhl', 'neighbors': equal})
+        print('Critical Residues Found Successfully')
+        self.timer.stop()
+        return critical_residues
+
+    @staticmethod
+    def report_critical_residues(items, selected_chain):
+        print('----------\nResult :\n')
+        print('Selected Chain is %s \n' % selected_chain)
+        print('%s Critical Residues Found : %s HydPhl-HydPhl - %s HydPhl-HydPhb - %s HydPhb-HydPhb\n' % (
+             len(items),
+             [i['type'] for i in items].count('HydPhl-HydPhl'),
+             [i['type'] for i in items].count('HydPhl-HydPhb'),
+             [i['type'] for i in items].count('HydPhb-HydPhb')))
+
+        for item in items:
+            residue = item['residue']
+            print('Residue %s #%s with %s %% RSA is %s with %s charge' % (
+                residue.get_resname(),
+                residue.get_id()[1],
+                round(residue.accessibility, 2),
+                'Hydrophilic' if residue.polar else 'Hydrophobic',
+                'Positive' if residue.charge == 1 else 'Negative' if residue.charge == -1 else 'Natural'))
+            print('There are %s neighbors : %s\n' % (item['type'], item['neighbors']))
+        print('')
+
 
 if __name__ == '__main__':
     myPDB = FastSASA()
@@ -197,4 +258,7 @@ if __name__ == '__main__':
     myPDB.timer.lapsed()
     myPDB.timer.reset()
     myPDB.chain_neighbors(0, 'A')
+    myPDB.timer.lapsed()
+    myPDB.timer.reset()
+    myPDB.critical_residues(5, 0, 'A')
     myPDB.timer.lapsed()
