@@ -215,12 +215,13 @@ class FastSASA:
                         equal.append(r)
                     else:
                         non.append(r)
-            if len(equal) == len(neighbors[model][chain]) and not residue.polar:
+            if residue.polar:
+                if len(equal) == 0:
+                    critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhb', 'neighbors': non})
+                elif len(equal) != 0:
+                    critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhl', 'neighbors': equal})
+            elif len(non) == 0:
                 critical_residues.append({'residue': residue, 'type': 'HydPhb-HydPhb', 'neighbors': equal})
-            elif len(non) == len(neighbors[model][chain]) and residue.polar:
-                critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhb', 'neighbors': non})
-            elif len(equal) != 0 and residue.polar:
-                critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhl', 'neighbors': equal})
         print('Critical Residues Found Successfully')
         self.timer.stop()
         return critical_residues
