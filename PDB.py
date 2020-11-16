@@ -14,7 +14,6 @@ class PDB:
         self.timer.start()
         self.structure = self.load(address)
         self.remove_other_residues()
-        self.atoms = self.get_atoms()
         self.timer.stop()
 
         self.timer.start()
@@ -64,14 +63,13 @@ class PDB:
         return atom_radii_dict
 
     def attach_atom_radii(self):
-        for atom in self.atoms:
+        for atom in self.get_atoms():
             res = atom.get_parent().get_resname()
             try:
                 atom.radius = self.atom_radii[res][atom.name]['radii']
                 atom.polar = self.atom_radii[res][atom.name]['polar']
             except KeyError:
                 atom.radius, atom.polar = unknown_radii.get_data(atom.element, atom.name)
-        return self.atoms
 
     @staticmethod
     def load_residue_classifications(file=None):

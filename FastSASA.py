@@ -10,7 +10,7 @@ class FastSASA:
 
     def __init__(self, probe_points=100, probe_radius=1.4):
         self.PDB = PDB()
-        self.probe = Probe(self.PDB.atoms, probe_points, probe_radius)
+        self.probe = Probe(self.PDB.get_atoms(), probe_points, probe_radius)
 
     def sasa(self, report=''):
         self.get_neighbor_probe_points()
@@ -21,7 +21,7 @@ class FastSASA:
     def get_neighbor_probe_points(self):
         self.timer.start()
         print('----------\nFinding Neighbor Probe Points', end='\r')
-        atoms_points = self.probe.get_points_in_atom_probe(self.PDB.atoms)
+        atoms_points = self.probe.get_points_in_atom_probe(self.PDB.get_atoms())
         for atom, points in enumerate(atoms_points):
             self.probe.atoms[atom].probe.buried[points % self.probe.points] = True
             print('Searching in Atom #%s Radius' % (atom + 1), end='\r')
@@ -31,7 +31,7 @@ class FastSASA:
     def calc_sasa(self):
         self.timer.start()
         print('----------\nBegin SASA Calculation', end='\r')
-        for index, atom in enumerate(self.PDB.atoms):
+        for index, atom in enumerate(self.PDB.get_atoms()):
             pp = self.probe.points
             atom_probe_points = self.probe.atoms[index].probe.buried
             atom.accessibility = sum([not p for p in atom_probe_points]) / pp
