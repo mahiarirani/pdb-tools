@@ -10,7 +10,7 @@ from Timer import Timer
 class PDB:
     timer = Timer()
 
-    def __init__(self, address=None, atom_radii_file=None, residue_classifications_file=None):
+    def __init__(self, address=None, atom_radii_file=None, residue_classifications_file=None, residue_rsa_file=None):
         self.timer.start()
         self.structure = self.load(address)
         self.remove_other_residues()
@@ -24,6 +24,11 @@ class PDB:
         self.timer.start()
         self.residue_classifications = self.load_residue_classifications(residue_classifications_file)
         self.attach_residue_classification()
+        self.timer.stop()
+
+        self.timer.start()
+        self.residue_RSA = self.load_residue_rsa(residue_rsa_file)
+        self.attach_residue_rsa()
         self.timer.stop()
 
     @staticmethod
@@ -96,6 +101,28 @@ class PDB:
             except KeyError:
                 residue.polar = False
                 residue.charge = 0
+
+    @staticmethod
+    def load_residue_rsa(file=None):
+        print('----------\nLoading Residue RSA', end='\r')
+        if file is None:
+            file = 'relative_solvent_accessibility.csv'
+        residue_rsa_dict = {}
+        with open(file, 'r') as data:
+            reader = csv.reader(data)
+            next(reader)
+            for line in reader:
+                residue_rsa_dict[line[0]] = int(line[1])
+        print('Residue rsa Loaded Successfully')
+        return residue_rsa_dict
+
+    def attach_residue_rsa(self):
+        residues = self.structure.get_residues()
+        for residue in residues:
+            try:
+                residue.RSA = self.residue_RSA[residue.get_resname()]
+            except KeyError:
+                residue.RSA = 1
 
     def get_atoms(self, item=None):
         if item is None:
