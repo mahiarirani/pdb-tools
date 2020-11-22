@@ -186,9 +186,7 @@ class FastSASA:
         print('')
 
     def critical_residues(self, threshold, model, chain):
-        try:
-            _ = self.PDB.structure.sasa
-        except AttributeError:
+        if not hasattr(self.PDB.structure, 'sasa'):
             self.sasa()
         item = self.PDB.get_item(model, chain)
         if item is None:
@@ -210,18 +208,18 @@ class FastSASA:
             equal, non = [], []
             for r in neighbors[model][chain]:
                 res = self.PDB.get_item(model, chain, r)
-                if res.accessibility < threshold:
-                    if res.polar == residue.polar:
-                        equal.append(r)
-                    else:
-                        non.append(r)
+                if res.polar == residue.polar:
+                    equal.append(r)
+                else:
+                    non.append(r)
             if residue.polar:
                 if len(equal) == 0:
                     critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhb', 'neighbors': non})
-                elif len(equal) != 0:
+                else:
                     critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhl', 'neighbors': equal})
-            elif len(non) == 0:
-                critical_residues.append({'residue': residue, 'type': 'HydPhb-HydPhb', 'neighbors': equal})
+            else:
+                if len(non) == 0:
+                    critical_residues.append({'residue': residue, 'type': 'HydPhb-HydPhb', 'neighbors': equal})
         print('Critical Residues Found Successfully')
         self.timer.stop()
         return critical_residues
@@ -230,11 +228,12 @@ class FastSASA:
     def report_critical_residues(items, selected_chain):
         print('----------\nResult :\n')
         print('Selected Chain is %s \n' % selected_chain)
+        items_types_list = [i['type'] for i in items]
         print('%s Critical Residues Found : %s HydPhl-HydPhl - %s HydPhl-HydPhb - %s HydPhb-HydPhb\n' % (
              len(items),
-             [i['type'] for i in items].count('HydPhl-HydPhl'),
-             [i['type'] for i in items].count('HydPhl-HydPhb'),
-             [i['type'] for i in items].count('HydPhb-HydPhb')))
+             items_types_list.count('HydPhl-HydPhl'),
+             items_types_list.count('HydPhl-HydPhb'),
+             items_types_list.count('HydPhl-HydPhb')))
 
         for item in items:
             residue = item['residue']
