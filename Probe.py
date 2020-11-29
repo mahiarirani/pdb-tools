@@ -37,19 +37,16 @@ class Probe:
     @staticmethod
     def create_probe(n):
         indices = np.arange(0, n, dtype=float) + 0.5
-
         phi = np.arccos(1 - 2 * indices / n)
         theta = np.pi * (1 + 5 ** 0.5) * indices
-
         points = np.dstack([np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)])
         return points[0]
 
     def attach_probe(self):
-        probe = self.probe
         buried_list = np.stack([False] * self.points)
         print('----------\nBegin Probe Attachment', end='\r')
         for index, atom in enumerate(self.atoms):
-            atom.probe = ProbeItem(probe * (self.radius + atom.radius) + atom.get_coord(), atom, buried_list)
+            atom.probe = ProbeItem(self.probe * (self.radius + atom.radius) + atom.get_coord(), atom, buried_list)
             print('Creating Atom #%s [%s] Probe' % (index + 1, atom.element), end='\r')
         print('Probe Attached Successfully')
 
@@ -62,7 +59,7 @@ class Probe:
 
     def get_points_in_atom_probe(self, atoms):
         radius = [(self.radius + atom.radius) - 0.001 for atom in atoms]
-        atoms = [[a.get_coord()[0], a.get_coord()[1], a.get_coord()[2]] for a in atoms]
+        atoms = [a.get_coord() for a in atoms]
         return self.tree.query_radius(atoms, radius)
 
 
