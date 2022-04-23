@@ -1,5 +1,3 @@
-import tkinter as tk
-from tkinter import filedialog
 import os
 import csv
 import unknown_radii
@@ -10,7 +8,7 @@ from Timer import Timer
 class PDB:
     timer = Timer()
 
-    def __init__(self, address=None, atom_radii_file=None, residue_classifications_file=None, residue_rsa_file=None):
+    def __init__(self, address, atom_radii_file, residue_classifications_file, residue_rsa_file):
         self.timer.start()
         self.structure = self.load(address)
         self.remove_other_residues()
@@ -32,19 +30,15 @@ class PDB:
         self.timer.stop()
 
     @staticmethod
-    def load(file=None):
+    def load(address):
         print('----------\nLoading PDB File', end='\r')
-        if file is None:
-            root = tk.Tk()
-            root.withdraw()
-            file = filedialog.askopenfilename()
-
-        path, file = os.path.split(file)
+        
+        path, file = os.path.split(address)
         file_name, file_extension = os.path.splitext(file)
 
         parser = PDBParser()
         parser.QUIET = True
-        structure = parser.get_structure(file_name, path + '/' + file)
+        structure = parser.get_structure(file_name, address)
         print('PDB File Loaded Successfully')
         return structure
 
