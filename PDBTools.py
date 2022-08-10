@@ -3,48 +3,44 @@ import argparse
 import pathlib
 import pickle
 import os
+from PDBObjectFileManager import FileManager
 from collections import OrderedDict
 from Probe import Probe
-from PDB import PDB
-from Timer import Timer
+from PDB import PDB, Residue, Chain
 
 
-class FastSASA:
-    timer = Timer()
+class PDBTools:
 
-    def __init__(self, pdb_file, probe_points=100, probe_radius=1.4, atom_radii_file=None,
-                 residue_classification_file=None, residue_radii_file=None):
-        self.PDB = PDB(pdb_file, atom_radii_file, residue_classification_file, residue_radii_file)
-        self.probe = Probe(self.PDB.get_atoms(), probe_points, probe_radius)
+    def __init__(self, pdb_file, probe_points, probe_radius):
+        self.pdb = PDB(pdb_file, probe_points, probe_radius)
+        self.fm = FileManager(self.pdb)
+        self.fm.ready()
 
     def sasa(self, report=''):
         self.get_neighbor_probe_points()
         self.calc_sasa()
-        self.sum_sasa(self.PDB.structure)
+        self.sum_sasa(self.pdb.structure)
+        self.fm.add(['sasa'])
         self.report_sasa(report)
 
     def get_neighbor_probe_points(self):
-        self.timer.start()
         print('----------\nFinding Neighbor Probe Points', end='\r')
-        atoms_points = self.probe.get_points_in_atom_probe(self.PDB.get_atoms())
+        atoms_points = self.pdb.probe.get_points_in_atom_probe(self.pdb.get_atoms())
         for atom, points in enumerate(atoms_points):
-            self.probe.atoms[atom].probe.buried[points % self.probe.points] = True
+            self.pdb.probe.atoms[atom].probe.buried[points % self.pdb.probe.points] = True
             print('Searching in Atom #%s Radius' % (atom + 1), end='\r')
         print('Neighbor Probe Points Found Successfully')
-        self.timer.stop()
 
     def calc_sasa(self):
-        self.timer.start()
         print('----------\nBegin SASA Calculation', end='\r')
-        for index, atom in enumerate(self.PDB.get_atoms()):
-            pp = self.probe.points
-            atom_probe_points = self.probe.atoms[index].probe.buried
+        for index, atom in enumerate(self.pdb.get_atoms()):
+            pp = self.pdb.probe.points
+            atom_probe_points = self.pdb.probe.atoms[index].probe.buried
             atom.accessibility = sum([not p for p in atom_probe_points]) / pp
-            atom.size = 4 * np.pi * (atom.radius + self.probe.radius) ** 2
+            atom.size = 4 * np.pi * (atom.radius + self.pdb.probe.radius) ** 2
             atom.sasa = atom.accessibility * atom.size
             print('Atom #%s [%s] SASA is %s Å' % (index + 1, atom.element, atom.sasa), end='\r')
         print('SASA Calculated Successfully')
-        self.timer.stop()
 
     def sum_sasa(self, item):
         if hasattr(item, 'sasa'):
@@ -56,13 +52,13 @@ class FastSASA:
                 total_sasa += item_sasa
                 total_size += item_size
             item.sasa = total_sasa
-            item.size = item.RSA if hasattr(item, 'RSA') else total_size
+            item.size = item.RSA if hasattr(item, 'RSA') and item.RSA != 1 else total_size
             item.accessibility = item.sasa / item.size * 100
             return item.sasa, item.size, item.accessibility
 
     def report_sasa(self, method=''):
         print('----------\nResult :\n')
-        for model in self.PDB.structure:
+        for model in self.pdb.structure:
             if method.__contains__('m'):
                 t, _, a = map(round, self.sum_sasa(model), [2] * 3)
                 print('Model #%s SASA is %s Å (%s%%)' % (
@@ -81,25 +77,23 @@ class FastSASA:
                         if method.__contains__('a'):
                             print('Atom #%s SASA is %s Å' % (
                                 atom.get_name(), atom.sasa))
-        t, _, a = map(round, self.sum_sasa(self.PDB.structure), [2] * 3)
+        t, _, a = map(round, self.sum_sasa(self.pdb.structure), [2] * 3)
         print('Total SASA of %s is %s Å (%s%%)\n' % (
-            self.PDB.structure.get_id(), t, a))
+            self.pdb.structure.get_id(), t, a))
 
-    def residue_neighbors(self, model, chain, residue):
-        item = self.PDB.get_item(model, chain, residue)
+    def residue_neighbors(self, residue: str):
+        residue = Residue(residue)
+        item = self.pdb.get_item(residue.model, residue.chain, residue.number)
         if item is None:
             print('----------\nError Getting Residue Neighbors :\nResidue not Found\n')
             return None
         self.get_residue_neighbors(item)
-        self.report_residue_neighbors(item)
+        self.fm.add(['neighbors'], item)
 
-    def get_residue_neighbors(self, residue, quiet=False):
-        if not quiet:
-            self.timer.start()
-            print('----------\nBegin Residue Neighbor Search', end='\r')
-        atoms = self.PDB.get_atoms(residue)
-        atoms = self.probe.get_atoms_in_atom_probe(atoms, residue)
-        atoms = self.probe.get_atoms_points_from_neighbors_atoms_probe(atoms, residue)
+    def get_residue_neighbors(self, residue):
+        atoms = self.pdb.get_atoms(residue)
+        atoms = self.pdb.probe.get_atoms_in_atom_probe(atoms, residue)
+        atoms = self.pdb.probe.get_atoms_points_from_neighbors_atoms_probe(atoms, residue)
         residue.neighbors = {}
         for atom in atoms:
             neighbor_residues = {}
@@ -111,33 +105,43 @@ class FastSASA:
             for neighbor_residue in neighbor_residues:
                 chain = neighbor_residue.get_parent()
                 model = chain.get_parent()
-                if residue.neighbors.get(model) is None:
-                    residue.neighbors[model] = {}
-                if residue.neighbors[model].get(chain) is None:
-                    residue.neighbors[model][chain] = {}
+                if residue.neighbors.get(model.get_id()) is None:
+                    residue.neighbors[model.get_id()] = {}
+                if residue.neighbors[model.get_id()].get(chain.get_id()) is None:
+                    residue.neighbors[model.get_id()][chain.get_id()] = {}
                 share = neighbor_residues[neighbor_residue]
-                if residue.neighbors[model][chain].get(neighbor_residue) is not None:
-                    share += residue.neighbors[model][chain][neighbor_residue]
-                residue.neighbors[model][chain][neighbor_residue] = share
-        if not quiet:
-            print('Residue Neighbors Found Successfully')
-            self.timer.stop()
+                if residue.neighbors[model.get_id()][chain.get_id()].get(neighbor_residue.get_id()[1]) is not None:
+                    share += residue.neighbors[model.get_id()][chain.get_id()][neighbor_residue.get_id()[1]]
+                residue.neighbors[model.get_id()][chain.get_id()][neighbor_residue.get_id()[1]] = share
+        for atom in atoms:
+            neighbors = {}
+            for n in atom.neighbors:
+                id = n['atom'].get_full_id()
+                c, r, a = id[2], id[3][1], id[4][0]
+                if neighbors.get(c) is None:
+                    neighbors[c] = {}
+                if neighbors[c].get(r) is None:
+                    neighbors[c][r] = {}
+                if neighbors[c][r].get(a) is None:
+                    neighbors[c][r][a] = {}
+                neighbors[c][r][a] = n['share']
+            atom.neighbors = neighbors
         return residue.neighbors
 
     def report_residue_neighbors(self, item):
         print('----------\nResult :\n')
         print('Selected Residue is %s #%s\n' % (item.get_resname(), item.id[1]))
         for model in item.neighbors:
-            print('Model #%s : ' % model.id)
+            print('Model #%s : ' % model)
             for chain in item.neighbors[model]:
-                print('Chain %s : ' % chain.id)
+                print('Chain %s : ' % chain)
                 for residue in sorted(item.neighbors[model][chain]):
                     share = round(item.neighbors[model][chain][residue], 2)
-                    print('%s #%s (%s Å)' % (residue.get_resname(), residue.get_id()[1], share))
+                    print('%s #%s (%s Å)' % (residue, residue, share))
                 print('')
         print('')
 
-        atoms = self.PDB.get_atoms(item)
+        atoms = self.pdb.get_atoms(item)
         for atom in atoms:
             print('%s of %s#%s :' % (atom, item.get_resname(), item.get_id()[1]))
             for n in atom.neighbors:
@@ -150,38 +154,37 @@ class FastSASA:
             print('')
         print('')
 
-    def chain_neighbors(self, model, chain):
-        item = self.PDB.get_item(model, chain)
+    def chain_neighbors(self, chain):
+        chain = Chain(chain)
+        item = self.pdb.get_item(chain.model, chain.chain)
         if item is None:
             print('----------\nError Getting Chain Neighbors :\nChain not Found\n')
             return None
         self.get_chain_neighbors(item)
-        self.report_chain_neighbors(item)
+        self.fm.add(['neighbors'], item)
 
     def get_chain_neighbors(self, chain):
-        self.timer.start()
         print('----------\nSearching Chain Neighbors', end='\r')
         chain.neighbors = {}
         for residue in chain.get_residues():
             print('Getting Residue #%s Neighbors' % residue.id[1], end='\r')
-            neighbors = self.get_residue_neighbors_shallow(residue, True)[chain.get_parent()]
+            neighbors = self.get_residue_neighbors_shallow(residue)[chain.get_parent()]
             if neighbors is not None and len(neighbors) > 1:
                 ch = residue.get_parent()
                 for neighbor in [key for key in neighbors.keys() if key is not ch]:
-                    if ch.neighbors.get(neighbor) is None:
-                        ch.neighbors[neighbor] = {}
+                    if ch.neighbors.get(neighbor.get_id()) is None:
+                        ch.neighbors[neighbor.get_id()] = {}
                     if len(neighbors[neighbor]):
-                        ch.neighbors[neighbor][residue] = sorted(neighbors[neighbor])
+                        for n in neighbors[neighbor]:
+                            if ch.neighbors[neighbor.get_id()].get(n) is None:
+                                ch.neighbors[neighbor.get_id()][n.get_id()[1]] = {}
+                            ch.neighbors[neighbor.get_id()][n.get_id()[1]] = residue.get_id()[1]
         print('Chain Neighbors Found Successfully')
-        self.timer.stop()
         return chain.neighbors
 
-    def get_residue_neighbors_shallow(self, residue, quiet=False):
-        if not quiet:
-            self.timer.start()
-            print('----------\nBegin Residue Neighbor Search', end='\r')
-        atoms = self.PDB.get_atoms(residue)
-        atoms = self.probe.get_atoms_in_atom_probe(atoms, residue)
+    def get_residue_neighbors_shallow(self, residue):
+        atoms = self.pdb.get_atoms(residue)
+        atoms = self.pdb.probe.get_atoms_in_atom_probe(atoms, residue)
         residue.neighbors = {}
         for atom in atoms:
             neighbor_residues = [n['atom'].get_parent() for n in atom.neighbors]
@@ -196,9 +199,6 @@ class FastSASA:
         for model in residue.neighbors:
             for chain in residue.neighbors[model]:
                 residue.neighbors[model][chain] = list(OrderedDict.fromkeys(residue.neighbors[model][chain]))
-        if not quiet:
-            print('Residue Neighbors Found Successfully')
-            self.timer.stop()
         return residue.neighbors
 
     @staticmethod
@@ -212,30 +212,27 @@ class FastSASA:
                 print('%s #%s -> %s ,' % (own_residue.get_resname(), own_residue.get_id()[1], residue_neighbors))
         print('')
 
-    def critical_residues(self, threshold, model, chain):
-        if not hasattr(self.PDB.structure, 'sasa'):
+    def critical_residues(self, threshold_high, model, chain):
+        if not hasattr(self.pdb.structure, 'sasa'):
             self.sasa()
-        item = self.PDB.get_item(model, chain)
+        item = self.pdb.get_item(model, chain)
         if item is None:
             print('----------\nError Getting Chain Neighbors :\nChain not Found\n')
             return None
-        critical_residues = self.get_critical_residues(threshold, item)
+        critical_residues = self.get_critical_residues(threshold_high, item)
         self.report_critical_residues(critical_residues, chain)
 
-    def get_critical_residues(self, threshold, item):
-        self.timer.start()
+    def get_critical_residues(self, threshold_high, item):
         print('----------\nSearching For Critical Residues', end='\r')
         critical_residues = []
         residues = item.get_residues()
         for residue in residues:
             chain = residue.get_parent()
             model = chain.get_parent()
-            if residue.get_id() == 66:
-                print(residue.accessibility)
-            if residue.accessibility > threshold:
+            if residue.accessibility > float(threshold_high):
                 continue
             print('Checking Residue #%s Neighbors' % residue.id[1], end='\r')
-            neighbors = self.get_residue_neighbors_shallow(residue, True)
+            neighbors = self.get_residue_neighbors_shallow(residue)
             equal, non = [], []
             for res in neighbors[model][chain]:
                 if res.polar == residue.polar:
@@ -250,10 +247,7 @@ class FastSASA:
             else:
                 if len(non) == 0:
                     critical_residues.append({'residue': residue, 'type': 'HydPhb-HydPhb', 'neighbors': equal})
-                else:
-                    critical_residues.append({'residue': residue, 'type': 'HydPhb-HydPhl', 'neighbors': non})
         print('Critical Residues Found Successfully')
-        self.timer.stop()
         return critical_residues
 
     @staticmethod
@@ -277,73 +271,3 @@ class FastSASA:
                 'Positive' if residue.charge == 1 else 'Negative' if residue.charge == -1 else 'Natural'))
             print('There are %s neighbors : %s\n' % (item['type'], [n.get_id()[1] for n in item['neighbors']]))
         print('')
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Process PDB files \n'
-                                                 'Abbreviations: M - model, C - chain, R - residue, T - threshold')
-    parser.add_argument('pdb', help="pdb file location", type=pathlib.Path)
-
-    group_actions = parser.add_argument_group('actions')
-    group_actions.add_argument('-s', '--sasa',
-                               help="calculate pbs sasa", action='store_true')
-    group_actions.add_argument('-sr', '--sasa-report',
-                               help="report sasa in detail", metavar='report', default='')
-    group_actions.add_argument('-r', '--residue-neighbors',
-                               help="find residue neighbors", nargs=3, metavar=('M', 'C', 'R'))
-    group_actions.add_argument('-c', '--chain-neighbors',
-                               help="find chain neighbors", nargs=2, metavar=('M', 'C'))
-    group_actions.add_argument('-cr', '--critical-residues',
-                               help="find critical residue", nargs=3, metavar=('T', 'M', 'C'))
-
-    group_options = parser.add_argument_group('options')
-    group_options.add_argument('-pp', '--probe_points',
-                               help="number of points on atom water probe", metavar='probe_points', default=100)
-    group_options.add_argument('-pr', '--probe_radius',
-                               help="radius of atom water probe", metavar='probe_radius', default=1.4)
-
-    group_assets = parser.add_argument_group('assets')
-    group_assets.add_argument('-far', '--file-atom-radii',
-                              help="atom radii File", type=pathlib.Path, metavar='file_location')
-    group_assets.add_argument('-frc', '--file-residue-classification',
-                              help="residue classification file", type=pathlib.Path, metavar='file_location')
-    group_assets.add_argument('-frr', '--file-residue-rsa',
-                              help="file residue rsa file", type=pathlib.Path, metavar='file_location')
-    args = parser.parse_args()
-
-    path, file = os.path.split(args.pdb)
-    if not os.path.isdir(os.getcwd() + '/PDBObject/'):
-        os.makedirs(os.getcwd() + '/PDBObject/')
-    if os.path.isfile(os.getcwd() + '/PDBObject/' + file + 'o'):
-        with open(os.getcwd() + '/PDBObject/' + file + 'o', 'rb') as f:
-            myPDB = pickle.load(f)
-    else:
-        myPDB = FastSASA(args.pdb, args.probe_points, args.probe_radius, args.file_atom_radii,
-                         args.file_residue_classification, args.file_residue_rsa)
-        with open(os.getcwd() + '/PDBObject/' + myPDB.PDB.structure.get_id() + '.pdbo', 'wb') as f:
-            pickle.dump(myPDB, f)
-
-    myPDB.timer.lapsed()
-
-    if (args.sasa):
-        myPDB.timer.reset()
-        myPDB.sasa(args.sasa_report)
-        myPDB.timer.lapsed()
-
-    if (args.residue_neighbors):
-        params = args.residue_neighbors
-        myPDB.timer.reset()
-        myPDB.residue_neighbors(int(params[0]), params[1], int(params[2]))
-        myPDB.timer.lapsed()
-
-    if (args.chain_neighbors):
-        params = args.chain_neighbors
-        myPDB.timer.reset()
-        myPDB.chain_neighbors(int(params[0]), params[1])
-        myPDB.timer.lapsed()
-
-    if (args.critical_residues):
-        params = args.critical_residues
-        myPDB.timer.reset()
-        myPDB.critical_residues(int(params[0]), int(params[1]), params[2])
-        myPDB.timer.lapsed()

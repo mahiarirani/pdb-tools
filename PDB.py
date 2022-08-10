@@ -1,38 +1,43 @@
 import os
 import csv
+import pickle
 import unknown_radii
 from Bio.PDB import *
-from Timer import Timer
+from Probe import Probe
 
 
 class PDB:
-    timer = Timer()
+    def __init__(self, address: str, probe_points: int, probe_radius: int):
+        path, file = os.path.split(address)
+        if not os.path.isdir(os.getcwd() + '/PDBObject/'):
+            os.makedirs(os.getcwd() + '/PDBObject/')
+        if os.path.isfile(os.getcwd() + '/PDBObject/' + file + 'o'):
+            with open(os.getcwd() + '/PDBObject/' + file + 'o', 'rb') as f:
+                pdb_object = pickle.load(f)
+                for k in pdb_object.__dict__.keys():
+                    setattr(self, k, getattr(pdb_object, k))
+        else:
+            self.structure = self.load(address)
+            self.remove_other_residues()
 
-    def __init__(self, address, atom_radii_file, residue_classifications_file, residue_rsa_file):
-        self.timer.start()
-        self.structure = self.load(address)
-        self.remove_other_residues()
-        self.timer.stop()
+            self.atom_radii = self.load_atom_radii()
+            self.attach_atom_radii()
 
-        self.timer.start()
-        self.atom_radii = self.load_atom_radii(atom_radii_file)
-        self.attach_atom_radii()
-        self.timer.stop()
+            self.residue_classifications = self.load_residue_classifications()
+            self.attach_residue_classification()
 
-        self.timer.start()
-        self.residue_classifications = self.load_residue_classifications(residue_classifications_file)
-        self.attach_residue_classification()
-        self.timer.stop()
+            self.residue_RSA = self.load_residue_rsa()
+            self.attach_residue_rsa()
 
-        self.timer.start()
-        self.residue_RSA = self.load_residue_rsa(residue_rsa_file)
-        self.attach_residue_rsa()
-        self.timer.stop()
+            self.probe = Probe(self.get_atoms(), probe_points, probe_radius)
+
+            with open(os.getcwd() + '/PDBObject/' + self.structure.get_id() + '.pdbo', 'wb') as f:
+                pickle.dump(self, f)
 
     @staticmethod
-    def load(address):
+    def load(address: str):
         print('----------\nLoading PDB File', end='\r')
-        
+
         path, file = os.path.split(address)
         file_name, file_extension = os.path.splitext(file)
 
@@ -43,10 +48,9 @@ class PDB:
         return structure
 
     @staticmethod
-    def load_atom_radii(file=None):
+    def load_atom_radii():
         print('----------\nLoading Atom Radii', end='\r')
-        if file is None:
-            file = 'vdw_radii.csv'
+        file = 'vdw_radii.csv'
         atom_radii_dict = {}
         with open(file, 'r') as data:
             for line in csv.reader(data):
@@ -71,10 +75,9 @@ class PDB:
                 atom.radius, atom.polar = unknown_radii.get_data(atom.element, atom.name)
 
     @staticmethod
-    def load_residue_classifications(file=None):
+    def load_residue_classifications():
         print('----------\nLoading Residue Classes', end='\r')
-        if file is None:
-            file = 'residue_classifications.csv'
+        file = 'residue_classifications.csv'
         residue_classes_dict = {}
         with open(file, 'r') as data:
             reader = csv.reader(data)
@@ -97,10 +100,9 @@ class PDB:
                 residue.charge = 0
 
     @staticmethod
-    def load_residue_rsa(file=None):
+    def load_residue_rsa():
         print('----------\nLoading Residue RSA', end='\r')
-        if file is None:
-            file = 'relative_solvent_accessibility.csv'
+        file = 'relative_solvent_accessibility.csv'
         residue_rsa_dict = {}
         with open(file, 'r') as data:
             reader = csv.reader(data)
@@ -146,3 +148,34 @@ class PDB:
             if residue.get_id()[0] != ' ':
                 delete_residues.append(residue)
         [delete_residue.get_parent().detach_child(delete_residue.id) for delete_residue in delete_residues]
+
+
+class Residue:
+    def __init__(self, residue: str):
+        target = residue.split(',')
+        if len(target) > 2:
+            model = target[0]
+            chain = target[1]
+            number = target[2]
+        else:
+            model = 0
+            chain = target[0]
+            number = target[1]
+
+        self.model = int(model)
+        self.chain = chain
+        self.number = int(number)
+
+
+class Chain:
+    def __init__(self, chain: str):
+        target = chain.split(',')
+        if len(target) > 1:
+            model = target[0]
+            chain = target[1]
+        else:
+            model = 0
+            chain = target[0]
+
+        self.model = int(model)
+        self.chain = chain

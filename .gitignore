@@ -1,4 +1,7 @@
 *.pdb
+./PDB
+./PDBObject
+./temp
 # Virtualenv
 .Python
 [Bb]in

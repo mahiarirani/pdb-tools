@@ -1,0 +1,12 @@
+biopython==1.79
+intervaltree==3.1.
+Jinja2==3.1.1
+joblib==1.1.0
+MarkupSafe==2.1.1
+numpy==1.22.3
+plac==1.3.5
+scikit-learn==1.0.2
+scipy==1.8
+sortedcontainers==2.4.0
+threadpoolctl==3.1.0
+toml==0.10.2
