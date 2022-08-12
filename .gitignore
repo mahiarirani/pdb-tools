@@ -1,8 +1,9 @@
 *.pdb
-./PDB
-./PDBObject
-./temp
+PDB
+PDBObject
+temp
 # Virtualenv
+.idea
 .Python
 [Bb]in
 [Ii]nclude
