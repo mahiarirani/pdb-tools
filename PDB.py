@@ -129,14 +129,14 @@ class PDB:
     def get_coordinates(a):
         return [a.get_coord()[0], a.get_coord()[1], a.get_coord()[2]]
 
-    def get_item(self, model, chain=None, residue=None):
+    def get_item(self, model: Model, chain: Chain = None, residue: Residue = None):
         try:
             if chain is None:
-                item = self.structure[model]
+                item = self.structure[model.id]
             elif residue is None:
-                item = self.structure[model][chain]
+                item = self.structure[model.id][chain.id]
             else:
-                item = self.structure[model][chain][(' ', residue, ' ')]
+                item = self.structure[model.id][chain.id][(' ', residue.id, ' ')]
         except KeyError:
             item = None
         return item
@@ -150,32 +150,25 @@ class PDB:
         [delete_residue.get_parent().detach_child(delete_residue.id) for delete_residue in delete_residues]
 
 
-class Residue:
-    def __init__(self, residue: str):
-        target = residue.split(',')
-        if len(target) > 2:
-            model = target[0]
-            chain = target[1]
-            number = target[2]
-        else:
-            model = 0
-            chain = target[0]
-            number = target[1]
-
-        self.model = int(model)
-        self.chain = chain
-        self.number = int(number)
-
-
 class Chain:
-    def __init__(self, chain: str):
-        target = chain.split(',')
-        if len(target) > 1:
-            model = target[0]
-            chain = target[1]
-        else:
-            model = 0
-            chain = target[0]
+    def __init__(self, id: str):
+        self.id = id
 
-        self.model = int(model)
-        self.chain = chain
+    def __str__(self):
+        return self.id
+
+
+class Residue:
+    def __init__(self, id: str):
+        self.id = id
+
+    def __str__(self):
+        return str(self.id)
+
+
+class Model:
+    def __init__(self, id: str):
+        self.id = id
+
+    def __str__(self):
+        return str(self.id)

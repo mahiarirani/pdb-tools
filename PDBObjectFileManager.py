@@ -3,15 +3,15 @@ import json
 
 
 class FileManager:
-    def __init__(self, pdb):
+    def __init__(self, pdb, extended: bool = False, minimal: bool = True):
         self.pdb = pdb
+        self.minimal = minimal
+        self.extended = extended
 
     def ready(self):
-        if not self.__open():
-            self.save()
-
-    def save(self):
         self.__json(self.pdb)
+        # if not self.__open():
+        #     self.__write()
 
     def add(self, fields, target=None):
         if target is None:
@@ -20,6 +20,8 @@ class FileManager:
             self.__attach_attribute(field, target)
 
     def __write(self):
+        if self.minimal:
+            self.structure = self.__strip_empties_from_dict(self.structure)
         with open(os.getcwd() + '/PDBObject/' + self.pdb.structure.id + '.json', 'w') as f:
             f.write(json.dumps(self.structure, default=self.__convert_set_to_list))
 
@@ -29,13 +31,32 @@ class FileManager:
             if os.stat(file).st_size == 0:
                 return False
             with open(file, 'r') as f:
-                self.structure = json.load(f)
+                self.__append_json(json.load(f))
+                if self.extended:
+                    for model in structure:
+                        for chain in model:
+                            for residue in chain:
+                                if 'atoms' not in residue:
+                                    self.__add_atoms_to_residue(model, chain, residue)
                 return True
         except FileNotFoundError:
             return False
 
+    def __append_json(self, json):
+        structure = json
+        for key in structure.keys():
+            pass
+            # print(self.structure[key])
+
     def __json(self, pdb):
         self.__structure_to_json(pdb.structure)
+
+    def __add_atoms_to_residue(self, model, chain, residue):
+        r = PDB.get_item(Model(model), Chain(chain), Residue(residue))
+        atoms = {}
+        for atoms in r:
+            atoms[str(atom.id)] = {}
+        self.structure[model][chain][residue]['atoms'] = atoms
 
     def __structure_to_json(self, structure):
         models = {}
@@ -44,14 +65,16 @@ class FileManager:
             for chain in model:
                 residues = {}
                 for residue in chain:
-                    atoms = {}
-                    for atom in residue:
-                        atoms[str(atom.id)] = {}
-                    residues[str(residue.get_id()[1])] = {'atoms': atoms}
+                    if self.extended:
+                        atoms = {}
+                        for atom in residue:
+                            atoms[str(atom.id)] = {'name': atom.get_name()}
+                        residues[str(residue.get_id()[1])] = {'atoms': atoms}
+                    else:
+                        residues[str(residue.get_id()[1])] = {'name': residue.get_resname()}
                 chains[str(chain.id)] = {'residues': residues}
             models[str(model.id)] = {'chains': chains}
         self.structure = {structure.id: {'models': models}}
-        self.__write()
 
     def __attach_attribute(self, field, target):
         level = target.__dict__['level']
@@ -70,10 +93,7 @@ class FileManager:
                 c = m['chains'][str(chain.id)]
                 for residue in chain:
                     r = c['residues'][str(residue.get_id()[1])]
-                    for atom in residue:
-                        a = r['atoms'][str(atom.id)]
-                        if field in atom.__dict__:
-                            a[field] = atom.__dict__[field]
+                    self.__add_atom_fields_to_residue(r)
                     if field in residue.__dict__:
                         r[field] = residue.__dict__[field]
                 if field in chain.__dict__:
@@ -99,13 +119,41 @@ class FileManager:
         m = s['models'][str(id[1])]
         c = m['chains'][str(id[2])]
         r = c['residues'][str(id[3][1])]
-        for atom in target:
-            a = r['atoms'][str(atom.id)]
-            if field in atom.__dict__:
-                a[field] = atom.__dict__[field]
+        self.__add_atom_fields_to_residue(target)
         if field in target.__dict__:
             r[field] = target.__dict__[field]
         self.__write()
+
+    def __add_atom_fields_to_residue(self, residue):
+        if self.extended:
+            for atom in residue:
+                a = r['atoms'][str(atom.id)]
+                if field in atom.__dict__:
+                    a[field] = atom.__dict__[field]
+
+    def __strip_empties_from_list(self, data):
+        new_data = []
+        for v in data:
+            if isinstance(v, dict):
+                v = self.__strip_empties_from_dict(v)
+            elif isinstance(v, list):
+                v = self.__strip_empties_from_list(v)
+            if v not in (None, str(), list(), dict(),):
+                new_data.append(v)
+        return new_data
+
+    def __strip_empties_from_dict(self, data):
+        new_data = {}
+        for k, v in data.items():
+            if isinstance(v, dict):
+                v = self.__strip_empties_from_dict(v)
+            elif isinstance(v, list):
+                v = self.__strip_empties_from_list(v)
+            if k == 'name' and len(data.items()) == 1:
+                continue
+            if v not in (None, str(), list(), dict(),):
+                new_data[k] = v
+        return new_data
 
     @staticmethod
     def __convert_set_to_list(obj):

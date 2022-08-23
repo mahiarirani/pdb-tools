@@ -1,19 +1,17 @@
 import numpy as np
-import argparse
-import pathlib
 import pickle
 import os
 from PDBObjectFileManager import FileManager
 from collections import OrderedDict
 from Probe import Probe
-from PDB import PDB, Residue, Chain
+from PDB import PDB, Model, Residue, Chain
 
 
 class PDBTools:
 
-    def __init__(self, pdb_file, probe_points, probe_radius):
+    def __init__(self, pdb_file, probe_points, probe_radius, extended: bool = False, minimal: bool = True):
         self.pdb = PDB(pdb_file, probe_points, probe_radius)
-        self.fm = FileManager(self.pdb)
+        self.fm = FileManager(self.pdb, extended, minimal)
         self.fm.ready()
 
     def sasa(self, report=''):
@@ -81,9 +79,8 @@ class PDBTools:
         print('Total SASA of %s is %s Å (%s%%)\n' % (
             self.pdb.structure.get_id(), t, a))
 
-    def residue_neighbors(self, residue: str):
-        residue = Residue(residue)
-        item = self.pdb.get_item(residue.model, residue.chain, residue.number)
+    def residue_neighbors(self, model: Model, chain: Chain, residue: Residue):
+        item = self.pdb.get_item(model, chain, residue)
         if item is None:
             print('----------\nError Getting Residue Neighbors :\nResidue not Found\n')
             return None
@@ -114,18 +111,19 @@ class PDBTools:
                     share += residue.neighbors[model.get_id()][chain.get_id()][neighbor_residue.get_id()[1]]
                 residue.neighbors[model.get_id()][chain.get_id()][neighbor_residue.get_id()[1]] = share
         for atom in atoms:
-            neighbors = {}
+            neighbors = {'chains': {}}
             for n in atom.neighbors:
                 id = n['atom'].get_full_id()
+                res_name = n['atom'].get_parent().get_resname()
                 c, r, a = id[2], id[3][1], id[4][0]
-                if neighbors.get(c) is None:
-                    neighbors[c] = {}
-                if neighbors[c].get(r) is None:
-                    neighbors[c][r] = {}
-                if neighbors[c][r].get(a) is None:
-                    neighbors[c][r][a] = {}
-                neighbors[c][r][a] = n['share']
-            atom.neighbors = neighbors
+                if neighbors['chains'].get(c) is None:
+                    neighbors['chains'][c] = {'name': c, 'residues': {}}
+                if neighbors['chains'][c]['residues'].get(r) is None:
+                    neighbors['chains'][c]['residues'][r] = {'name': res_name, 'atoms': {}}
+                if neighbors['chains'][c]['residues'][r]['atoms'].get(a) is None:
+                    neighbors['chains'][c]['residues'][r]['atoms'][a] = {}
+                neighbors['chains'][c]['residues'][r]['atoms'][a] = n['share']
+            residue.neighbors = neighbors
         return residue.neighbors
 
     def report_residue_neighbors(self, item):
@@ -154,9 +152,8 @@ class PDBTools:
             print('')
         print('')
 
-    def chain_neighbors(self, chain):
-        chain = Chain(chain)
-        item = self.pdb.get_item(chain.model, chain.chain)
+    def chain_neighbors(self, model: Model, chain: Chain):
+        item = self.pdb.get_item(model, chain)
         if item is None:
             print('----------\nError Getting Chain Neighbors :\nChain not Found\n')
             return None
