@@ -170,12 +170,10 @@ class PDBTools:
                 ch = residue.get_parent()
                 for neighbor in [key for key in neighbors.keys() if key is not ch]:
                     if ch.neighbors.get(neighbor.get_id()) is None:
-                        ch.neighbors[neighbor.get_id()] = {}
+                        ch.neighbors[neighbor.get_id()] = []
                     if len(neighbors[neighbor]):
                         for n in neighbors[neighbor]:
-                            if ch.neighbors[neighbor.get_id()].get(n) is None:
-                                ch.neighbors[neighbor.get_id()][n.get_id()[1]] = {}
-                            ch.neighbors[neighbor.get_id()][n.get_id()[1]] = residue.get_id()[1]
+                            ch.neighbors[neighbor.get_id()].append({'from': (n.get_id()[1], n.get_resname()), 'to': (residue.get_id()[1], residue.get_resname())})
         print('Chain Neighbors Found Successfully')
         return chain.neighbors
 
