@@ -6,6 +6,30 @@ from Bio.PDB import *
 from Probe import Probe
 
 
+class Model:
+    def __init__(self, id):
+        self.id = id
+
+    def __str__(self):
+        return str(self.id)
+
+
+class Chain:
+    def __init__(self, id):
+        self.id = id
+
+    def __str__(self):
+        return str(self.id)
+
+
+class Residue:
+    def __init__(self, id):
+        self.id = id
+
+    def __str__(self):
+        return str(self.id)
+
+
 class PDB:
     def __init__(self, address: str, probe_points: int, probe_radius: int):
         path, file = os.path.split(address)
@@ -148,27 +172,3 @@ class PDB:
             if residue.get_id()[0] != ' ':
                 delete_residues.append(residue)
         [delete_residue.get_parent().detach_child(delete_residue.id) for delete_residue in delete_residues]
-
-
-class Chain:
-    def __init__(self, id: str):
-        self.id = id
-
-    def __str__(self):
-        return self.id
-
-
-class Residue:
-    def __init__(self, id: str):
-        self.id = id
-
-    def __str__(self):
-        return str(self.id)
-
-
-class Model:
-    def __init__(self, id: str):
-        self.id = id
-
-    def __str__(self):
-        return str(self.id)
