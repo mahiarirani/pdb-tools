@@ -1,9 +1,6 @@
 import numpy as np
-import pickle
-import os
 from PDBObjectFileManager import FileManager
 from collections import OrderedDict
-from Probe import Probe
 from PDB import PDB, Model, Residue, Chain
 
 
@@ -174,8 +171,8 @@ class PDBTools:
                     if len(neighbors[neighbor]):
                         for n in neighbors[neighbor]:
                             ch.neighbors['chains'][neighbor.get_id()].append({
-                                'from': {n.get_id()[1]: {'name': n.get_resname()}},
-                                'to': {residue.get_id()[1]: {'name': residue.get_resname()}}
+                                'from': {residue.get_id()[1]: {'name': residue.get_resname()}},
+                                'to': {n.get_id()[1]: {'name': n.get_resname()}}
                             })
         print('Chain Neighbors Found Successfully')
         return chain.neighbors

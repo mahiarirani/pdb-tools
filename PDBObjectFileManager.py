@@ -11,8 +11,7 @@ class FileManager:
 
     def ready(self):
         self.__json(self.pdb)
-        # if not self.__open():
-        #     self.__write()
+        self.__open()
 
     def add(self, fields, target=None):
         if target is None:
@@ -33,16 +32,38 @@ class FileManager:
                 return False
             with open(file, 'r') as f:
                 self.__append_json(json.load(f))
-                self.__add_atoms_to_residue(self.structure)
                 return True
         except FileNotFoundError:
             return False
 
-    def __append_json(self, json):
-        structure = json
-        for key in structure.keys():
-            pass
-            # print(self.structure[key])
+    def __append_json(self, json_structure):
+        structure = list(json_structure.keys())[0]
+        s = json_structure[structure]
+        my_s = self.structure[structure]
+        self.__duplicate_fields(my_s, s)
+        for model in s['models'].keys():
+            m = s['models'][model]
+            my_m = my_s['models'][model]
+            self.__duplicate_fields(my_m, m)
+            for chain in m['chains'].keys():
+                c = m['chains'][chain]
+                my_c = my_m['chains'][chain]
+                self.__duplicate_fields(my_c, c)
+                for residue in c['residues'].keys():
+                    r = c['residues'][residue]
+                    my_r = my_c['residues'][residue]
+                    self.__duplicate_fields(my_r, r)
+                    if 'atoms' in r and self.extended:
+                        for atom in r['atoms'].keys():
+                            a = r['atoms'][atom]
+                            my_a = my_r['atoms'][atom]
+                            self.__duplicate_fields(my_a, a)
+
+    @staticmethod
+    def __duplicate_fields(main, target):
+        for key in target.keys():
+            if key not in main:
+                main[key] = target[key]
 
     def __json(self, pdb):
         self.__structure_to_json(pdb.structure)
