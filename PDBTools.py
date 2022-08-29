@@ -162,18 +162,21 @@ class PDBTools:
 
     def get_chain_neighbors(self, chain):
         print('----------\nSearching Chain Neighbors', end='\r')
-        chain.neighbors = {}
+        chain.neighbors = {'chains': {}}
         for residue in chain.get_residues():
             print('Getting Residue #%s Neighbors' % residue.id[1], end='\r')
             neighbors = self.get_residue_neighbors_shallow(residue)[chain.get_parent()]
             if neighbors is not None and len(neighbors) > 1:
                 ch = residue.get_parent()
                 for neighbor in [key for key in neighbors.keys() if key is not ch]:
-                    if ch.neighbors.get(neighbor.get_id()) is None:
-                        ch.neighbors[neighbor.get_id()] = []
+                    if ch.neighbors['chains'].get(neighbor.get_id()) is None:
+                        ch.neighbors['chains'][neighbor.get_id()] = []
                     if len(neighbors[neighbor]):
                         for n in neighbors[neighbor]:
-                            ch.neighbors[neighbor.get_id()].append({'from': (n.get_id()[1], n.get_resname()), 'to': (residue.get_id()[1], residue.get_resname())})
+                            ch.neighbors['chains'][neighbor.get_id()].append({
+                                'from': {n.get_id()[1]: {'name': n.get_resname()}},
+                                'to': {residue.get_id()[1]: {'name': residue.get_resname()}}
+                            })
         print('Chain Neighbors Found Successfully')
         return chain.neighbors
 

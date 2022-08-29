@@ -4,50 +4,50 @@ import csv
 from PDB import Model, Chain, Residue
 from PDBTools import PDBTools
 
-app = typer.Typer()
+app = typer.Typer(help="PDBTools CLI")
 
 
-@app.command()
+@app.command(help="Calculate SASA")
 def sasa(
-        pdb_file: str,
-        probe_points: int = 100,
-        probe_radius: float = 1.4,
-        extended: bool = typer.Option(False),
-        minimal: bool = typer.Option(True)
+        pdb_file: str = typer.Argument(..., help="PDB File"),
+        probe_points: int = typer.Argument(100, help="Number of points in probe structure"),
+        probe_radius:float = typer.Argument(1.4, help="Probe radius size"),
+        extended: bool = typer.Option(False, help="Extend to atom detail"),
+        minimal: bool = typer.Option(True, help="Keep results minimal")
 ):
     PDBTools(pdb_file, probe_points, probe_radius, extended, minimal).sasa()
 
 
-@app.command()
+@app.command(help="Get residue neighbors")
 def residue_neighbors(
-        pdb_file: str,
-        chain: str,
-        residue: int,
-        model: int = 0,
-        probe_points: int = 100,
-        probe_radius: float = 1.4,
-        extended: bool = typer.Option(False),
-        minimal: bool = typer.Option(True)
+        pdb_file: str = typer.Argument(..., help="PDB File"),
+        chain: str = typer.Argument('A', help="Chain name on which the command will execute"),
+        residue: int = typer.Argument(0, help="Model number on which the command will execute"),
+        model: int = typer.Argument(0, help="Model number on which the command will execute"),
+        probe_points: int = typer.Argument(100, help="Number of points in probe structure"),
+        probe_radius: float = typer.Argument(1.4, help="Probe radius size"),
+        extended: bool = typer.Option(False, help="Extend to atom detail"),
+        minimal: bool = typer.Option(True, help="Keep results minimal")
 ):
     PDBTools(pdb_file, probe_points, probe_radius, extended, minimal)\
         .residue_neighbors(Model(model), Chain(chain), Residue(residue))
 
 
-@app.command()
+@app.command(help="Get chain neighbors")
 def chain_neighbors(
-        pdb_file: str,
-        chain: str,
-        model: int = 0,
-        probe_points: int = 100,
-        probe_radius: float = 1.4,
-        extended: bool = typer.Option(False),
-        minimal: bool = typer.Option(True)
+        pdb_file: str = typer.Argument(..., help="PDB File"),
+        chain: str = typer.Argument('A', help="Chain name on which the command will execute"),
+        model: int = typer.Argument(0, help="Model number on which the command will execute"),
+        probe_points: int = typer.Argument(100, help="Number of points in probe structure"),
+        probe_radius: float = typer.Argument(1.4, help="Probe radius size"),
+        extended: bool = typer.Option(False, help="Extend to atom detail"),
+        minimal: bool = typer.Option(True, help="Keep results minimal")
 ):
     PDBTools(pdb_file, probe_points, probe_radius, extended, minimal)\
         .chain_neighbors(Model(model), Chain(chain))
 
 
-@app.command()
+@app.command(help="Batch run commands")
 def batch(
         directory: str,
 ):

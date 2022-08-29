@@ -69,8 +69,8 @@ class FileManager:
                     if self.extended:
                         atoms = {}
                         for atom in residue:
-                            atoms[str(atom.id)] = {'name': atom.get_name()}
-                        residues[str(residue.get_id()[1])] = {'atoms': atoms}
+                            atoms[str(atom.id)] = {}
+                        residues[str(residue.get_id()[1])] = {'name': residue.get_resname(), 'atoms': atoms}
                     else:
                         residues[str(residue.get_id()[1])] = {'name': residue.get_resname()}
                 chains[str(chain.id)] = {'residues': residues}
@@ -147,6 +147,9 @@ class FileManager:
         new_data = {}
         for k, v in data.items():
             if isinstance(v, dict):
+                if k == 'neighbors':
+                    new_data[k] = v
+                    continue
                 v = self.__strip_empties_from_dict(v)
             elif isinstance(v, list):
                 v = self.__strip_empties_from_list(v)
