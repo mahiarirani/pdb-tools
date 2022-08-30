@@ -85,6 +85,7 @@ class PDBTools:
         self.fm.add(['neighbors'], item)
 
     def get_residue_neighbors(self, residue):
+        print('----------\nSearching Residue Neighbors', end='\r')
         atoms = self.pdb.get_atoms(residue)
         atoms = self.pdb.probe.get_atoms_in_atom_probe(atoms, residue)
         atoms = self.pdb.probe.get_atoms_points_from_neighbors_atoms_probe(atoms, residue)
@@ -121,6 +122,7 @@ class PDBTools:
                     neighbors['chains'][c]['residues'][r]['atoms'][a] = {}
                 neighbors['chains'][c]['residues'][r]['atoms'][a] = n['share']
             residue.neighbors = neighbors
+        print('Residue Neighbors Found Successfully')
         return residue.neighbors
 
     def report_residue_neighbors(self, item):

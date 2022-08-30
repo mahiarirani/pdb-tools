@@ -41,23 +41,26 @@ class FileManager:
         s = json_structure[structure]
         my_s = self.structure[structure]
         self.__duplicate_fields(my_s, s)
-        for model in s['models'].keys():
-            m = s['models'][model]
-            my_m = my_s['models'][model]
-            self.__duplicate_fields(my_m, m)
-            for chain in m['chains'].keys():
-                c = m['chains'][chain]
-                my_c = my_m['chains'][chain]
-                self.__duplicate_fields(my_c, c)
-                for residue in c['residues'].keys():
-                    r = c['residues'][residue]
-                    my_r = my_c['residues'][residue]
-                    self.__duplicate_fields(my_r, r)
-                    if 'atoms' in r and self.extended:
-                        for atom in r['atoms'].keys():
-                            a = r['atoms'][atom]
-                            my_a = my_r['atoms'][atom]
-                            self.__duplicate_fields(my_a, a)
+        if 'models' in s:
+            for model in s['models'].keys():
+                m = s['models'][model]
+                my_m = my_s['models'][model]
+                self.__duplicate_fields(my_m, m)
+                if 'chains' in m:
+                    for chain in m['chains'].keys():
+                        c = m['chains'][chain]
+                        my_c = my_m['chains'][chain]
+                        self.__duplicate_fields(my_c, c)
+                        if 'residues' in c:
+                            for residue in c['residues'].keys():
+                                r = c['residues'][residue]
+                                my_r = my_c['residues'][residue]
+                                self.__duplicate_fields(my_r, r)
+                                if 'atoms' in r and self.extended:
+                                    for atom in r['atoms'].keys():
+                                        a = r['atoms'][atom]
+                                        my_a = my_r['atoms'][atom]
+                                        self.__duplicate_fields(my_a, a)
 
     @staticmethod
     def __duplicate_fields(main, target):
