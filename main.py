@@ -47,6 +47,21 @@ def chain_neighbors(
         .chain_neighbors(Model(model), Chain(chain))
 
 
+@app.command(help="Get critical residues")
+def critical_residues(
+        pdb_file: str = typer.Argument(..., help="PDB File"),
+        chain: str = typer.Argument('A', help="Chain name on which the command will execute"),
+        model: int = typer.Argument(0, help="Model number on which the command will execute"),
+        threshold: float = typer.Argument(0.05, help="Threshold amount to be considered as critical"),
+        probe_points: int = typer.Argument(100, help="Number of points in probe structure"),
+        probe_radius: float = typer.Argument(1.4, help="Probe radius size"),
+        extended: bool = typer.Option(False, help="Extend to atom detail"),
+        minimal: bool = typer.Option(True, help="Keep results minimal")
+):
+    PDBTools(pdb_file, probe_points, probe_radius, extended, minimal) \
+        .critical_residues(threshold, Model(model), Chain(chain))
+
+
 @app.command(help="Batch run commands")
 def batch(
         directory: str,

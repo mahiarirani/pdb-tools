@@ -86,7 +86,7 @@ class Probe:
     def get_atoms_points_from_neighbors_atoms_probe(self, atoms, residue):
         # find atoms points with neighbors data
         probes_points = [[[] for _ in range(self.points)] for _ in atoms]
-        atom_points = [self.get_points_in_atom_probe([a['atom'] for a in atom.neighbors], False) for atom in atoms]
+        atom_points = [self.get_points_in_atom_probe([a['atom'] for a in atom.neighbors]) for atom in atoms]
         for index, self_atom in enumerate(atom_points):
             for idx, neighbor_atom_points in enumerate(self_atom):
                 for i, point in enumerate(neighbor_atom_points):

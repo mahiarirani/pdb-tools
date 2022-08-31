@@ -171,11 +171,14 @@ class FileManager:
         new_data = {}
         for k, v in data.items():
             if isinstance(v, dict):
-                if k == 'neighbors':
+                if k == 'neighbors' or k == 'critical':
                     new_data[k] = v
                     continue
                 v = self.__strip_empties_from_dict(v)
             elif isinstance(v, list):
+                if k == 'neighbors' or k == 'critical':
+                    new_data[k] = v
+                    continue
                 v = self.__strip_empties_from_list(v)
             if k == 'name' and len(data.items()) == 1:
                 continue

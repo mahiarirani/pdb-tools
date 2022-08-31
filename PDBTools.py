@@ -1,6 +1,5 @@
 import numpy as np
 from PDBObjectFileManager import FileManager
-from collections import OrderedDict
 from PDB import PDB, Model, Residue, Chain
 
 
@@ -14,17 +13,12 @@ class PDBTools:
     def sasa(self, report=''):
         self.get_neighbor_probe_points()
         self.calc_sasa()
-        self.sum_sasa(self.pdb.structure)
         self.fm.add(['sasa'])
-        self.report_sasa(report)
 
     def get_neighbor_probe_points(self):
-        print('----------\nFinding Neighbor Probe Points', end='\r')
         atoms_points = self.pdb.probe.get_points_in_atom_probe(self.pdb.get_atoms())
         for atom, points in enumerate(atoms_points):
             self.pdb.probe.atoms[atom].probe.buried[points % self.pdb.probe.points] = True
-            print('Searching in Atom #%s Radius' % (atom + 1), end='\r')
-        print('Neighbor Probe Points Found Successfully')
 
     def calc_sasa(self):
         print('----------\nBegin SASA Calculation', end='\r')
@@ -34,7 +28,6 @@ class PDBTools:
             atom.accessibility = sum([not p for p in atom_probe_points]) / pp
             atom.size = 4 * np.pi * (atom.radius + self.pdb.probe.radius) ** 2
             atom.sasa = atom.accessibility * atom.size
-            print('Atom #%s [%s] SASA is %s Å' % (index + 1, atom.element, atom.sasa), end='\r')
         print('SASA Calculated Successfully')
 
     def sum_sasa(self, item):
@@ -51,31 +44,6 @@ class PDBTools:
             item.accessibility = item.sasa / item.size * 100
             return item.sasa, item.size, item.accessibility
 
-    def report_sasa(self, method=''):
-        print('----------\nResult :\n')
-        for model in self.pdb.structure:
-            if method.__contains__('m'):
-                t, _, a = map(round, self.sum_sasa(model), [2] * 3)
-                print('Model #%s SASA is %s Å (%s%%)' % (
-                    model.id, t, a))
-            for chain in model:
-                if method.__contains__('c'):
-                    t, _, a = map(round, self.sum_sasa(chain), [2] * 3)
-                    print('Chain #%s SASA is %s Å (%s%%)' % (
-                        chain.id, t, a))
-                for residue in chain:
-                    if method.__contains__('r'):
-                        t, _, a = map(round, self.sum_sasa(residue), [2] * 3)
-                        print('Residue %s #%s SASA is %s Å (%s%%)' % (
-                            residue.get_resname(), residue.get_id()[1], t, a))
-                    for atom in residue:
-                        if method.__contains__('a'):
-                            print('Atom #%s SASA is %s Å' % (
-                                atom.get_name(), atom.sasa))
-        t, _, a = map(round, self.sum_sasa(self.pdb.structure), [2] * 3)
-        print('Total SASA of %s is %s Å (%s%%)\n' % (
-            self.pdb.structure.get_id(), t, a))
-
     def residue_neighbors(self, model: Model, chain: Chain, residue: Residue):
         item = self.pdb.get_item(model, chain, residue)
         if item is None:
@@ -89,67 +57,26 @@ class PDBTools:
         atoms = self.pdb.get_atoms(residue)
         atoms = self.pdb.probe.get_atoms_in_atom_probe(atoms, residue)
         atoms = self.pdb.probe.get_atoms_points_from_neighbors_atoms_probe(atoms, residue)
-        residue.neighbors = {}
+        residue.neighbors = {'chains': {}}
         for atom in atoms:
             neighbor_residues = {}
             for n in atom.neighbors:
-                share = n['share']
-                if neighbor_residues.get(n['atom'].get_parent()) is not None:
-                    share += neighbor_residues[n['atom'].get_parent()]
-                neighbor_residues.update({n['atom'].get_parent(): share})
+                if neighbor_residues.get(n['atom'].get_parent()) is None:
+                    neighbor_residues[n['atom'].get_parent()] = 0
+                neighbor_residues.update({n['atom'].get_parent(): neighbor_residues[n['atom'].get_parent()] + n['share']})
             for neighbor_residue in neighbor_residues:
                 chain = neighbor_residue.get_parent()
-                model = chain.get_parent()
-                if residue.neighbors.get(model.get_id()) is None:
-                    residue.neighbors[model.get_id()] = {}
-                if residue.neighbors[model.get_id()].get(chain.get_id()) is None:
-                    residue.neighbors[model.get_id()][chain.get_id()] = {}
-                share = neighbor_residues[neighbor_residue]
-                if residue.neighbors[model.get_id()][chain.get_id()].get(neighbor_residue.get_id()[1]) is not None:
-                    share += residue.neighbors[model.get_id()][chain.get_id()][neighbor_residue.get_id()[1]]
-                residue.neighbors[model.get_id()][chain.get_id()][neighbor_residue.get_id()[1]] = share
-        for atom in atoms:
-            neighbors = {'chains': {}}
-            for n in atom.neighbors:
-                id = n['atom'].get_full_id()
-                res_name = n['atom'].get_parent().get_resname()
-                c, r, a = id[2], id[3][1], id[4][0]
-                if neighbors['chains'].get(c) is None:
-                    neighbors['chains'][c] = {'name': c, 'residues': {}}
-                if neighbors['chains'][c]['residues'].get(r) is None:
-                    neighbors['chains'][c]['residues'][r] = {'name': res_name, 'atoms': {}}
-                if neighbors['chains'][c]['residues'][r]['atoms'].get(a) is None:
-                    neighbors['chains'][c]['residues'][r]['atoms'][a] = {}
-                neighbors['chains'][c]['residues'][r]['atoms'][a] = n['share']
-            residue.neighbors = neighbors
+                if residue.neighbors['chains'].get(chain.get_id()) is None:
+                    residue.neighbors['chains'][chain.get_id()] = {'residues': {}}
+                if residue.neighbors['chains'][chain.get_id()]['residues'].get(neighbor_residue.get_id()[1]) is None:
+                    residue.neighbors['chains'][chain.get_id()]['residues'][neighbor_residue.get_id()[1]] = {
+                        'name': neighbor_residue.get_resname(),
+                        'item': neighbor_residue,
+                        'share': 0
+                    }
+                residue.neighbors['chains'][chain.get_id()]['residues'][neighbor_residue.get_id()[1]]['share'] += neighbor_residues[neighbor_residue]
         print('Residue Neighbors Found Successfully')
         return residue.neighbors
-
-    def report_residue_neighbors(self, item):
-        print('----------\nResult :\n')
-        print('Selected Residue is %s #%s\n' % (item.get_resname(), item.id[1]))
-        for model in item.neighbors:
-            print('Model #%s : ' % model)
-            for chain in item.neighbors[model]:
-                print('Chain %s : ' % chain)
-                for residue in sorted(item.neighbors[model][chain]):
-                    share = round(item.neighbors[model][chain][residue], 2)
-                    print('%s #%s (%s Å)' % (residue, residue, share))
-                print('')
-        print('')
-
-        atoms = self.pdb.get_atoms(item)
-        for atom in atoms:
-            print('%s of %s#%s :' % (atom, item.get_resname(), item.get_id()[1]))
-            for n in atom.neighbors:
-                neighbor_residue = n['atom'].get_parent()
-                print('%s Å contact with %s of %s#%s in Chain %s' % (
-                    round(n['share'], 2), n['atom'],
-                    neighbor_residue.get_resname(),
-                    neighbor_residue.get_id()[1],
-                    neighbor_residue.get_full_id()[2]))
-            print('')
-        print('')
 
     def chain_neighbors(self, model: Model, chain: Chain):
         item = self.pdb.get_item(model, chain)
@@ -163,18 +90,19 @@ class PDBTools:
         print('----------\nSearching Chain Neighbors', end='\r')
         chain.neighbors = {'chains': {}}
         for residue in chain.get_residues():
-            print('Getting Residue #%s Neighbors' % residue.id[1], end='\r')
-            neighbors = self.get_residue_neighbors_shallow(residue)[chain.get_parent()]
-            if neighbors is not None and len(neighbors) > 1:
+            print('Getting Residue %s%s Neighbors' % (residue.get_resname(), residue.id[1]), end='\r')
+            neighbors = self.get_residue_neighbors_shallow(residue)
+            if neighbors is not None and len(neighbors['chains']) > 1:
                 ch = residue.get_parent()
-                for neighbor in [key for key in neighbors.keys() if key is not ch]:
-                    if ch.neighbors['chains'].get(neighbor.get_id()) is None:
-                        ch.neighbors['chains'][neighbor.get_id()] = []
-                    if len(neighbors[neighbor]):
-                        for n in neighbors[neighbor]:
-                            ch.neighbors['chains'][neighbor.get_id()].append({
+                for neighbor in [key for key in neighbors['chains'].keys() if key is not ch.get_id()]:
+                    if ch.neighbors['chains'].get(neighbor) is None:
+                        ch.neighbors['chains'][neighbor] = []
+                    if len(neighbors['chains'][neighbor]):
+                        for n in neighbors['chains'][neighbor]['residues']:
+                            nx = neighbors['chains'][neighbor]['residues'][n]
+                            ch.neighbors['chains'][neighbor].append({
                                 'from': {residue.get_id()[1]: {'name': residue.get_resname()}},
-                                'to': {n.get_id()[1]: {'name': n.get_resname()}}
+                                'to': {n: {'name': nx['name']}}
                             })
         print('Chain Neighbors Found Successfully')
         return chain.neighbors
@@ -182,89 +110,68 @@ class PDBTools:
     def get_residue_neighbors_shallow(self, residue):
         atoms = self.pdb.get_atoms(residue)
         atoms = self.pdb.probe.get_atoms_in_atom_probe(atoms, residue)
-        residue.neighbors = {}
+        residue.neighbors = {'chains': {}}
         for atom in atoms:
             neighbor_residues = [n['atom'].get_parent() for n in atom.neighbors]
             for neighbor_residue in neighbor_residues:
-                chain = neighbor_residue.get_parent()
-                model = chain.get_parent()
-                if residue.neighbors.get(model) is None:
-                    residue.neighbors[model] = {}
-                if residue.neighbors[model].get(chain) is None:
-                    residue.neighbors[model][chain] = []
-                residue.neighbors[model][chain].append(neighbor_residue)
-        for model in residue.neighbors:
-            for chain in residue.neighbors[model]:
-                residue.neighbors[model][chain] = list(OrderedDict.fromkeys(residue.neighbors[model][chain]))
+                chain = neighbor_residue.get_parent().get_id()
+                if residue.neighbors['chains'].get(chain) is None:
+                    residue.neighbors['chains'][chain] = {'residues': {}}
+                if residue.neighbors['chains'][chain]['residues'].get(neighbor_residue.get_id()[1]) is None:
+                    residue.neighbors['chains'][chain]['residues'][neighbor_residue.get_id()[1]] = {
+                        'name': neighbor_residue.get_resname(),
+                        'item': neighbor_residue
+                    }
         return residue.neighbors
 
-    @staticmethod
-    def report_chain_neighbors(item):
-        print('----------\nResult :\n')
-        print('Selected Chain is %s \n' % item.id)
-        for chain in item.neighbors:
-            print('Chain %s :' % chain.id)
-            for own_residue in item.neighbors[chain]:
-                residue_neighbors = [n.get_id()[1] for n in item.neighbors[chain][own_residue]]
-                print('%s #%s -> %s ,' % (own_residue.get_resname(), own_residue.get_id()[1], residue_neighbors))
-        print('')
-
-    def critical_residues(self, threshold_high, model, chain):
+    def critical_residues(self, threshold, model:Model, chain:Chain):
         if not hasattr(self.pdb.structure, 'sasa'):
             self.sasa()
         item = self.pdb.get_item(model, chain)
         if item is None:
             print('----------\nError Getting Chain Neighbors :\nChain not Found\n')
             return None
-        critical_residues = self.get_critical_residues(threshold_high, item)
-        self.report_critical_residues(critical_residues, chain)
+        self.get_critical_residues(threshold, item)
+        self.fm.add(['critical'], item)
 
-    def get_critical_residues(self, threshold_high, item):
+    def get_critical_residues(self, threshold, chain):
         print('----------\nSearching For Critical Residues', end='\r')
         critical_residues = []
-        residues = item.get_residues()
-        for residue in residues:
-            chain = residue.get_parent()
-            model = chain.get_parent()
-            if residue.accessibility > float(threshold_high):
+        for residue in chain.get_residues():
+            if residue.accessibility > float(threshold):
                 continue
             print('Checking Residue #%s Neighbors' % residue.id[1], end='\r')
             neighbors = self.get_residue_neighbors_shallow(residue)
-            equal, non = [], []
-            for res in neighbors[model][chain]:
+            equal, non = {}, {}
+            for res in neighbors['chains'][chain.get_id()]['residues']:
+                res = neighbors['chains'][chain.get_id()]['residues'][res]['item']
                 if res.polar == residue.polar:
-                    equal.append(res)
+                    equal[res.get_id()[1]] = {'name': res.get_resname()}
                 else:
-                    non.append(res)
-            if residue.polar:
-                if len(equal) == 0:
-                    critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhb', 'neighbors': non})
+                    non[res.get_id()[1]] = {'name': res.get_resname()}
+            if len(equal) > 0 and len(non) > 0:
+                if residue.polar:
+                    if len(equal) == 0:
+                        critical_residues.append({
+                            'item': {residue.get_id()[1]: {'name': residue.get_resname()}},
+                            'type': 'HydPhl-HydPhb',
+                            'residues': non
+                          })
+                    else:
+                        critical_residues.append({
+                            'item': {residue.get_id()[1]: {'name': residue.get_resname()}},
+                            'type': 'HydPhl-HydPhl',
+                            'residues': equal
+                        })
                 else:
-                    critical_residues.append({'residue': residue, 'type': 'HydPhl-HydPhl', 'neighbors': equal})
-            else:
-                if len(non) == 0:
-                    critical_residues.append({'residue': residue, 'type': 'HydPhb-HydPhb', 'neighbors': equal})
+                    if len(non) == 0:
+                        critical_residues.append({
+                            'item': {residue.get_id()[1]: {'name': residue.get_resname()}},
+                            'type': 'HydPhb-HydPhb',
+                            'residues': equal
+                        })
+
         print('Critical Residues Found Successfully')
-        return critical_residues
+        chain.critical = critical_residues
+        return chain.critical
 
-    @staticmethod
-    def report_critical_residues(items, selected_chain):
-        print('----------\nResult :\n')
-        print('Selected Chain is %s \n' % selected_chain)
-        items_types_list = [i['type'] for i in items]
-        print('%s Critical Residues Found : %s HydPhl-HydPhl - %s HydPhl-HydPhb - %s HydPhb-HydPhb\n' % (
-            len(items),
-            items_types_list.count('HydPhl-HydPhl'),
-            items_types_list.count('HydPhl-HydPhb'),
-            items_types_list.count('HydPhl-HydPhb')))
-
-        for item in items:
-            residue = item['residue']
-            print('Residue %s #%s with %s %% RSA is %s with %s charge' % (
-                residue.get_resname(),
-                residue.get_id()[1],
-                round(residue.accessibility, 2),
-                'Hydrophilic' if residue.polar else 'Hydrophobic',
-                'Positive' if residue.charge == 1 else 'Negative' if residue.charge == -1 else 'Natural'))
-            print('There are %s neighbors : %s\n' % (item['type'], [n.get_id()[1] for n in item['neighbors']]))
-        print('')
