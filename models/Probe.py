@@ -36,7 +36,7 @@ class Probe:
         # attaching probe points to atoms
         buried_list = np.stack([False] * self.points)
         for index, atom in enumerate(self.atoms):
-            atom.probe = ProbeItem(self.probe * (self.radius + atom.radius) + atom.get_coord(), atom, buried_list)
+            atom.probe = _ProbeItem(self.probe * (self.radius + atom.radius) + atom.get_coord(), atom, buried_list)
 
     @staticmethod
     def create_tree(item):
@@ -106,7 +106,7 @@ class Probe:
         return atoms
 
 
-class ProbeItem:
+class _ProbeItem:
 
     def __init__(self, coords, atom, buried_list):
         self.coords = coords

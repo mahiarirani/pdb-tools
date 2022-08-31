@@ -1,6 +1,6 @@
 import os
 import json
-from PDB import PDB, Chain, Model, Residue
+from models import PDB, Chain, Model, Residue
 
 
 class FileManager:

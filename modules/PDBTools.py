@@ -1,6 +1,6 @@
 import numpy as np
-from PDBObjectFileManager import FileManager
-from PDB import PDB, Model, Residue, Chain
+from modules import FileManager
+from models import PDB, Model, Residue, Chain
 
 
 class PDBTools:

@@ -1,33 +1,9 @@
 import os
 import csv
 import pickle
-import unknown_radii
+import data.unknown_radii as unknown_radii
 from Bio.PDB import *
-from Probe import Probe
-
-
-class Model:
-    def __init__(self, id):
-        self.id = id
-
-    def __str__(self):
-        return str(self.id)
-
-
-class Chain:
-    def __init__(self, id):
-        self.id = id
-
-    def __str__(self):
-        return str(self.id)
-
-
-class Residue:
-    def __init__(self, id):
-        self.id = id
-
-    def __str__(self):
-        return str(self.id)
+from models.Probe import Probe
 
 
 class PDB:
@@ -74,7 +50,7 @@ class PDB:
     @staticmethod
     def load_atom_radii():
         print('----------\nLoading Atom Radii', end='\r')
-        file = 'vdw_radii.csv'
+        file = 'data/vdw_radii.csv'
         atom_radii_dict = {}
         with open(file, 'r') as data:
             for line in csv.reader(data):
@@ -101,7 +77,7 @@ class PDB:
     @staticmethod
     def load_residue_classifications():
         print('----------\nLoading Residue Classes', end='\r')
-        file = 'residue_classifications.csv'
+        file = 'data/residue_classifications.csv'
         residue_classes_dict = {}
         with open(file, 'r') as data:
             reader = csv.reader(data)
@@ -126,7 +102,7 @@ class PDB:
     @staticmethod
     def load_residue_rsa():
         print('----------\nLoading Residue RSA', end='\r')
-        file = 'relative_solvent_accessibility.csv'
+        file = 'data/relative_solvent_accessibility.csv'
         residue_rsa_dict = {}
         with open(file, 'r') as data:
             reader = csv.reader(data)

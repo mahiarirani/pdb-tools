@@ -1,8 +1,8 @@
 import typer
 import os
 import csv
-from PDB import Model, Chain, Residue
-from PDBTools import PDBTools
+from models import Model, Chain, Residue
+from modules import PDBTools
 
 app = typer.Typer(help="PDBTools CLI")
 
