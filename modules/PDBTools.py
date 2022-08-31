@@ -13,6 +13,7 @@ class PDBTools:
     def sasa(self, report=''):
         self.get_neighbor_probe_points()
         self.calc_sasa()
+        self.sum_sasa(self.pdb.structure)
         self.fm.add(['sasa'])
 
     def get_neighbor_probe_points(self):
@@ -102,7 +103,8 @@ class PDBTools:
                             nx = neighbors['chains'][neighbor]['residues'][n]
                             ch.neighbors['chains'][neighbor].append({
                                 'from': {residue.get_id()[1]: {'name': residue.get_resname()}},
-                                'to': {n: {'name': nx['name']}}
+                                'to': {n: {'name': nx['name']}},
+                                'points': nx['points']
                             })
         print('Chain Neighbors Found Successfully')
         return chain.neighbors
@@ -112,7 +114,11 @@ class PDBTools:
         atoms = self.pdb.probe.get_atoms_in_atom_probe(atoms, residue)
         residue.neighbors = {'chains': {}}
         for atom in atoms:
-            neighbor_residues = [n['atom'].get_parent() for n in atom.neighbors]
+            neighbor_residues = {}
+            for neighbor in atom.neighbors:
+                if neighbor_residues.get(neighbor['atom'].get_parent()) is None:
+                    neighbor_residues[neighbor['atom'].get_parent()] = 0
+                neighbor_residues[neighbor['atom'].get_parent()] += neighbor['share']
             for neighbor_residue in neighbor_residues:
                 chain = neighbor_residue.get_parent().get_id()
                 if residue.neighbors['chains'].get(chain) is None:
@@ -120,8 +126,10 @@ class PDBTools:
                 if residue.neighbors['chains'][chain]['residues'].get(neighbor_residue.get_id()[1]) is None:
                     residue.neighbors['chains'][chain]['residues'][neighbor_residue.get_id()[1]] = {
                         'name': neighbor_residue.get_resname(),
-                        'item': neighbor_residue
+                        'item': neighbor_residue,
+                        'points': 0
                     }
+                residue.neighbors['chains'][chain]['residues'][neighbor_residue.get_id()[1]]['points'] += neighbor_residues[neighbor_residue]
         return residue.neighbors
 
     def critical_residues(self, threshold, model:Model, chain:Chain):
@@ -136,40 +144,49 @@ class PDBTools:
 
     def get_critical_residues(self, threshold, chain):
         print('----------\nSearching For Critical Residues', end='\r')
-        critical_residues = []
+        critical_residues = {}
         for residue in chain.get_residues():
             if residue.accessibility > float(threshold):
                 continue
             print('Checking Residue #%s Neighbors' % residue.id[1], end='\r')
             neighbors = self.get_residue_neighbors_shallow(residue)
+            siblings = range(residue.get_id()[1] - 3, residue.get_id()[1] + 3)
             equal, non = {}, {}
             for res in neighbors['chains'][chain.get_id()]['residues']:
+                if res in siblings:
+                    continue
+                points = neighbors['chains'][chain.get_id()]['residues'][res]['points']
+                if points < 50:
+                    continue
                 res = neighbors['chains'][chain.get_id()]['residues'][res]['item']
                 if res.polar == residue.polar:
-                    equal[res.get_id()[1]] = {'name': res.get_resname()}
+                    equal[res.get_id()[1]] = {'name': res.get_resname(), 'points': points}
                 else:
-                    non[res.get_id()[1]] = {'name': res.get_resname()}
-            if len(equal) > 0 and len(non) > 0:
+                    non[res.get_id()[1]] = {'name': res.get_resname(), 'points': points}
+            if len(equal) > 0 or len(non) > 0:
                 if residue.polar:
                     if len(equal) == 0:
-                        critical_residues.append({
-                            'item': {residue.get_id()[1]: {'name': residue.get_resname()}},
+                        critical_residues[residue.get_id()[1]] = {
+                            'name': residue.get_resname(),
+                            'sasa': residue.sasa,
                             'type': 'HydPhl-HydPhb',
                             'residues': non
-                          })
+                        }
                     else:
-                        critical_residues.append({
-                            'item': {residue.get_id()[1]: {'name': residue.get_resname()}},
+                        critical_residues[residue.get_id()[1]] = {
+                            'name': residue.get_resname(),
+                            'sasa': residue.sasa,
                             'type': 'HydPhl-HydPhl',
                             'residues': equal
-                        })
+                        }
                 else:
                     if len(non) == 0:
-                        critical_residues.append({
-                            'item': {residue.get_id()[1]: {'name': residue.get_resname()}},
+                        critical_residues[residue.get_id()[1]] = {
+                            'name': residue.get_resname(),
+                            'sasa': residue.sasa,
                             'type': 'HydPhb-HydPhb',
                             'residues': equal
-                        })
+                        }
 
         print('Critical Residues Found Successfully')
         chain.critical = critical_residues
