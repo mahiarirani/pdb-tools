@@ -10,16 +10,11 @@ class PDBTools:
         self.fm = FileManager(self.pdb, extended, minimal)
         self.fm.ready()
 
-    def sasa(self, report=''):
+    def sasa(self):
         self.get_neighbor_probe_points()
         self.calc_sasa()
         self.sum_sasa(self.pdb.structure)
         self.fm.add(['sasa'])
-
-    def get_neighbor_probe_points(self):
-        atoms_points = self.pdb.probe.get_points_in_atom_probe(self.pdb.get_atoms())
-        for atom, points in enumerate(atoms_points):
-            self.pdb.probe.atoms[atom].probe.buried[points % self.pdb.probe.points] = True
 
     def calc_sasa(self):
         print('----------\nBegin SASA Calculation', end='\r')
