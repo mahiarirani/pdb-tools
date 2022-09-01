@@ -43,6 +43,11 @@ class Probe:
         # create kd-tree
         return KDTree(item)
 
+    def get_neighbor_probe_points(self, atoms):
+        atoms_points = self.get_points_in_atom_probe(atoms)
+        for atom, points in enumerate(atoms_points):
+            atoms[atom].probe.buried[points % self.points] = True
+
     def get_points_in_atom_probe(self, atoms, include_probe_radius=True):
         # find points inside an atom probe
         if include_probe_radius:

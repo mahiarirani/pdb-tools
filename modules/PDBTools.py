@@ -11,19 +11,20 @@ class PDBTools:
         self.fm.ready()
 
     def sasa(self):
-        self.get_neighbor_probe_points()
         self.calc_sasa()
-        self.sum_sasa(self.pdb.structure)
         self.fm.add(['sasa'])
 
     def calc_sasa(self):
         print('----------\nBegin SASA Calculation', end='\r')
-        for index, atom in enumerate(self.pdb.get_atoms()):
+        atoms = self.pdb.get_atoms()
+        self.pdb.probe.get_neighbor_probe_points(atoms)
+        for index, atom in enumerate(atoms):
             pp = self.pdb.probe.points
             atom_probe_points = self.pdb.probe.atoms[index].probe.buried
             atom.accessibility = sum([not p for p in atom_probe_points]) / pp
             atom.size = 4 * np.pi * (atom.radius + self.pdb.probe.radius) ** 2
             atom.sasa = atom.accessibility * atom.size
+        self.sum_sasa(self.pdb.structure)
         print('SASA Calculated Successfully')
 
     def sum_sasa(self, item):
