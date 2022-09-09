@@ -6,8 +6,8 @@ from models import PDB, Model, Residue, Chain
 class PDBTools:
 
     def __init__(self, pdb_file, probe_points, probe_radius, extended: bool = False, minimal: bool = True):
-        self.pdb = PDB(pdb_file, probe_points, probe_radius)
-        self.fm = FileManager(self.pdb, extended, minimal)
+        self.fm = FileManager(pdb_file, probe_points, probe_radius, extended, minimal)
+        self.pdb = self.fm.pdb
         self.fm.ready()
 
     def sasa(self):

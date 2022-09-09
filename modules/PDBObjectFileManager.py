@@ -1,13 +1,54 @@
 import os
 import json
+import pickle
 from models import PDB, Chain, Model, Residue
 
 
 class FileManager:
-    def __init__(self, pdb, extended: bool = False, minimal: bool = True):
-        self.pdb = pdb
+    def __init__(self, pdb_file_address, probe_points, probe_radius, extended: bool = False, minimal: bool = True):
         self.minimal = minimal
         self.extended = extended
+        self.pdb = self.__get_pdb(pdb_file_address, probe_points, probe_radius)
+
+    def __get_pdb(self, pdb_file_address, probe_points, probe_radius):
+        self.__check_main_folder_existence()
+        file, name = self.__get_pdb_file_from_address(pdb_file_address)
+        pdb = self.__load_pdb_object(name)
+        if pdb is None:
+            new = PDB(name, file, probe_points, probe_radius)
+            self.__write_pdb_object_to_file(new)
+        else:
+            new = pdb
+        return new
+
+    @staticmethod
+    def __get_pdb_file_from_address(address):
+        path, file = os.path.split(address)
+        name, extension = os.path.splitext(file)
+        return file, name
+
+    @staticmethod
+    def __check_main_folder_existence():
+        if not os.path.isdir(os.getcwd() + '/PDBObject/'):
+            os.makedirs(os.getcwd() + '/PDBObject/')
+
+    @staticmethod
+    def __load_pdb_object(file):
+        if os.path.isfile(os.getcwd() + '/PDBObject/' + file + '.pdbo'):
+            with open(os.getcwd() + '/PDBObject/' + file + '.pdbo', 'rb') as f:
+                return pickle.load(f)
+        else:
+            return None
+
+    @staticmethod
+    def __duplicate_object_attributes(source, target):
+        for k in source.__dict__.keys():
+            setattr(target, k, getattr(source, k))
+
+    @staticmethod
+    def __write_pdb_object_to_file(pdb):
+        with open(os.getcwd() + '/PDBObject/' + pdb.id + '.pdbo', 'wb') as f:
+            pickle.dump(pdb, f)
 
     def ready(self):
         self.__json(self.pdb)
@@ -22,7 +63,7 @@ class FileManager:
     def __write(self):
         if self.minimal:
             self.structure = self.__strip_empties_from_dict(self.structure)
-        with open(os.getcwd() + '/PDBObject/' + self.pdb.structure.id + '.json', 'w') as f:
+        with open(os.getcwd() + './PDBObject/' + self.pdb.structure.id + '.json', 'w') as f:
             f.write(json.dumps(self.structure, default=self.__convert_set_to_list))
 
     def __open(self) -> bool:

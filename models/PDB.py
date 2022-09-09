@@ -1,49 +1,34 @@
-import os
 import csv
-import pickle
 import data.unknown_radii as unknown_radii
 from Bio.PDB import *
+from models import Model, Chain, Residue
 from models.Probe import Probe
 
 
 class PDB:
-    def __init__(self, address: str, probe_points: int, probe_radius: int):
-        path, file = os.path.split(address)
-        if not os.path.isdir(os.getcwd() + '/PDBObject/'):
-            os.makedirs(os.getcwd() + '/PDBObject/')
-        if os.path.isfile(os.getcwd() + '/PDBObject/' + file + 'o'):
-            with open(os.getcwd() + '/PDBObject/' + file + 'o', 'rb') as f:
-                pdb_object = pickle.load(f)
-                for k in pdb_object.__dict__.keys():
-                    setattr(self, k, getattr(pdb_object, k))
-        else:
-            self.structure = self.load(address)
-            self.remove_other_residues()
+    def __init__(self, id: str,  file: bytes, probe_points: int, probe_radius: int):
+        self.id = id
+        self.structure = self.load(file, self.id)
+        self.remove_other_residues()
 
-            self.atom_radii = self.load_atom_radii()
-            self.attach_atom_radii()
+        self.atom_radii = self.load_atom_radii()
+        self.attach_atom_radii()
 
-            self.residue_classifications = self.load_residue_classifications()
-            self.attach_residue_classification()
+        self.residue_classifications = self.load_residue_classifications()
+        self.attach_residue_classification()
 
-            self.residue_RSA = self.load_residue_rsa()
-            self.attach_residue_rsa()
+        self.residue_RSA = self.load_residue_rsa()
+        self.attach_residue_rsa()
 
-            self.probe = Probe(self.get_atoms(), probe_points, probe_radius)
-
-            with open(os.getcwd() + '/PDBObject/' + self.structure.get_id() + '.pdbo', 'wb') as f:
-                pickle.dump(self, f)
+        self.probe = Probe(self.get_atoms(), probe_points, probe_radius)
 
     @staticmethod
-    def load(address: str):
+    def load(file: bytes, name: str):
         print('----------\nLoading PDB File', end='\r')
-
-        path, file = os.path.split(address)
-        file_name, file_extension = os.path.splitext(file)
 
         parser = PDBParser()
         parser.QUIET = True
-        structure = parser.get_structure(file_name, address)
+        structure = parser.get_structure(name, file)
         print('PDB File Loaded Successfully')
         return structure
 
