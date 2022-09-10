@@ -12,20 +12,20 @@ class FileManager:
 
     def __get_pdb(self, pdb_file_address, probe_points, probe_radius):
         self.__check_main_folder_existence()
-        file, name = self.__get_pdb_file_from_address(pdb_file_address)
+        name = self.__get_file_name_from_address(pdb_file_address)
         pdb = self.__load_pdb_object(name)
         if pdb is None:
-            new = PDB(name, file, probe_points, probe_radius)
+            new = PDB(name, pdb_file_address, probe_points, probe_radius)
             self.__write_pdb_object_to_file(new)
         else:
             new = pdb
         return new
 
     @staticmethod
-    def __get_pdb_file_from_address(address):
+    def __get_file_name_from_address(address):
         path, file = os.path.split(address)
         name, extension = os.path.splitext(file)
-        return file, name
+        return name
 
     @staticmethod
     def __check_main_folder_existence():
@@ -63,7 +63,7 @@ class FileManager:
     def __write(self):
         if self.minimal:
             self.structure = self.__strip_empties_from_dict(self.structure)
-        with open(os.getcwd() + './PDBObject/' + self.pdb.structure.id + '.json', 'w') as f:
+        with open(os.getcwd() + '/PDBObject/' + self.pdb.structure.id + '.json', 'w') as f:
             f.write(json.dumps(self.structure, default=self.__convert_set_to_list))
 
     def __open(self) -> bool:

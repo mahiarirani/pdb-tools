@@ -20,6 +20,7 @@ async def post_pdb(file: UploadFile):
         name = file.filename
         with open('./PDB/' + name, 'wb') as f:
             f.write(contents)
+        name, extension = os.path.splitext(name)
     except Exception:
         return {"message": "There was an error uploading the file"}
     finally:
@@ -46,9 +47,8 @@ def sasa(pdb: str, chain: str, model: int = 0,  probe_points: int = 100, probe_r
 
 
 @app.get("/critical")
-def sasa(pdb: str, chain: str, model: int = 0,  probe_points: int = 100, probe_radius: float = 1.4):
-    name, extension = os.path.splitext(pdb)
-    PDBTools('./PDB/' + pdb + '.pdb', probe_points, probe_radius).critical_residues(Model(model), Chain(chain))
+def sasa(pdb: str, threshold: int, chain: str, model: int = 0,  probe_points: int = 100, probe_radius: float = 1.4):
+    PDBTools('./PDB/' + pdb + '.pdb', probe_points, probe_radius).critical_residues(threshold, Model(model), Chain(chain))
     return __load_json(pdb)
 
 
